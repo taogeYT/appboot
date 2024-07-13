@@ -9,6 +9,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship, declarative_base
 
 from appboot.utils import make_model_by_obj
+from appboot import settings
 
 Base = declarative_base()
 
@@ -46,8 +47,10 @@ class Demo(ModelSchema):
     model_config = ConfigDict(validate_assignment=True)
 
 
-pprint(Demo.schema())
-d = make_model_by_obj(Demo, {"id": 1})
-print(d.dict(exclude_defaults=True))
-dao = Demo.objects
-print(dao)
+def run():
+    print(settings.APP_NAME1)
+    pprint(Demo.schema())
+    d = make_model_by_obj(Demo, {"id": 1})
+    print(d.dict(exclude_defaults=True))
+    dao = Demo.objects
+    print(dao)
