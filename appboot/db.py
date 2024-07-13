@@ -1,11 +1,12 @@
 import asyncio
 import contextlib
+import typing
 
 from sqlalchemy.ext.asyncio import (
+    AsyncSession,
     async_scoped_session,
     async_sessionmaker,
     create_async_engine,
-    AsyncSession,
 )
 
 from appboot import settings
@@ -13,12 +14,9 @@ from appboot import settings
 default_config = settings.DATABASES.default
 
 engine = create_async_engine(
-    url=default_config.url,
-    pool_size=default_config.pool_size,
-    max_overflow=default_config.max_overflow,
-    pool_recycle=default_config.pool_recycle,
+    url=str(default_config.url),
     future=True,
-    echo=default_config.echo,
+    **default_config.dict(exclude={"url"}, exclude_defaults=True),
 )
 
 ScopedSession = async_scoped_session(
@@ -27,7 +25,7 @@ ScopedSession = async_scoped_session(
 
 
 @contextlib.asynccontextmanager
-async def transaction() -> AsyncSession:
+async def transaction() -> typing.AsyncIterator[AsyncSession]:
     session = ScopedSession()
     try:
         yield session

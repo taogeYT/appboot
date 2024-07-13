@@ -4,6 +4,7 @@ import os
 def main():
     os.environ.setdefault("APP_BOOT_SETTINGS_MODULE", "examples.settings")
     from examples.foo import run
+
     run()
 
 

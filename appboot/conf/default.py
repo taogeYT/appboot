@@ -1,9 +1,6 @@
+from pydantic import BaseModel, RedisDsn
 from pydantic_core import Url
 from pydantic_settings import BaseSettings
-from pydantic import (
-    BaseModel,
-    RedisDsn
-)
 
 
 class EngineConfig(BaseSettings):
@@ -20,5 +17,7 @@ class DataBases(BaseModel):
 
 class DefaultSettings(BaseSettings):
     APP_NAME: str = "app"
-    DATABASES: DataBases = DataBases(default=EngineConfig(url="sqlite:///:memory:"))
-    REDIS: RedisDsn = "redis://localhost:6379/0"
+    DATABASES: DataBases = DataBases(
+        default=EngineConfig(url="sqlite+aiosqlite:///:memory:")
+    )
+    REDIS: RedisDsn = RedisDsn("redis://localhost:6379/0")

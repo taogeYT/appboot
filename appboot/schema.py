@@ -5,15 +5,15 @@ from pydantic import Field
 from sqlalchemy import inspect
 from sqlalchemy.orm import ColumnProperty
 
-from appboot.db import ScopedSession
-from appboot.model import ModelT, Model, BaseSchema
-from appboot.repository import Repository, RepositoryT
 from appboot._compat import PydanticModelMetaclass
+from appboot.db import ScopedSession
+from appboot.model import BaseSchema, Model, ModelT
+from appboot.repository import Repository, RepositoryT
 
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
-    Self = typing.TypeVar('Self', bound='ModelSchema')
+    Self = typing.TypeVar("Self", bound="ModelSchema")
 
 
 def _parse_field_from_sqlalchemy_model(model, attrs):
@@ -38,28 +38,27 @@ def _parse_field_from_sqlalchemy_model(model, attrs):
 
 class ModelSchemaMetaclass(PydanticModelMetaclass):
     def __new__(
-            mcs,
-            cls_name: str,
-            bases: tuple[type[typing.Any], ...],
-            namespace: dict[str, typing.Any],
-            **kwargs: typing.Any
+        mcs,
+        cls_name: str,
+        bases: tuple[type[typing.Any], ...],
+        namespace: dict[str, typing.Any],
+        **kwargs: typing.Any,
     ) -> type:
         # meta = namespace.pop('Meta', None)
-        if cls_name == 'ModelSchema':
+        if cls_name == "ModelSchema":
             return super().__new__(mcs, cls_name, bases, namespace, **kwargs)
-        meta = namespace['Meta']
+        meta = namespace["Meta"]
         if hasattr(meta, "fields"):
             pass
         if not hasattr(meta, "repository_class"):
             meta.repository_class = Repository
         _parse_field_from_sqlalchemy_model(meta.model, namespace)
         new_cls = super().__new__(mcs, cls_name, bases, namespace, **kwargs)
-        new_cls.objects = RepositoryDescriptor(meta.repository_class)
+        setattr(new_cls, "objects", RepositoryDescriptor(meta.repository_class))
         return new_cls
 
 
 class RepositoryDescriptor:
-
     def __init__(self, repository_class):
         self.repository_class = repository_class
 
@@ -67,15 +66,15 @@ class RepositoryDescriptor:
         return self.repository_class(cls, ScopedSession())
 
 
-class BaseMeta:
-    model: type[ModelT] = Model
+class BaseMeta(object):
+    model: type[ModelT] = Model  # type: ignore
     fields: typing.Sequence = []
-    repository_class: type[RepositoryT] = Repository
+    repository_class: type[RepositoryT] = Repository  # type: ignore
 
 
 class ModelSchema(BaseSchema, metaclass=ModelSchemaMetaclass):
     Meta: typing.ClassVar[BaseMeta] = BaseMeta()
-    objects: typing.ClassVar[Repository[Self]]
+    objects: typing.ClassVar[Repository[Self]]  # type: ignore
 
     async def save(self, flush: bool = False) -> Self:
         if self.id:

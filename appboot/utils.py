@@ -1,6 +1,7 @@
 import typing
 
 from pydantic import BaseModel
+
 from appboot._compat import PYDANTIC_V2
 
 

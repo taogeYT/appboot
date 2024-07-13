@@ -1,6 +1,7 @@
 import importlib
 import os
 import typing
+import warnings
 
 from appboot._compat import PydanticModelMetaclass
 from appboot.conf.default import DefaultSettings
@@ -18,18 +19,19 @@ def _parse_field_from_mod(mod, attrs):
 
 class BaseSettingsMetaclass(PydanticModelMetaclass):
     def __new__(
-            mcs,
-            cls_name: str,
-            bases: tuple[type[typing.Any], ...],
-            namespace: dict[str, typing.Any],
-            **kwargs: typing.Any
+        mcs,
+        cls_name: str,
+        bases: tuple[type[typing.Any], ...],
+        namespace: dict[str, typing.Any],
+        **kwargs: typing.Any,
     ) -> type:
-        meta = namespace['Meta']
+        meta = namespace["Meta"]
         settings_module = getattr(meta, "settings_module", None)
-        if not settings_module:
-            raise ValueError("settings_module are not configured")
-        mod = importlib.import_module(settings_module)
-        _parse_field_from_mod(mod, namespace)
+        if settings_module:
+            mod = importlib.import_module(settings_module)
+            _parse_field_from_mod(mod, namespace)
+        else:
+            warnings.warn("settings_module are not configured")
         new_cls = super().__new__(mcs, cls_name, bases, namespace, **kwargs)
         return new_cls
 
@@ -38,6 +40,7 @@ class Settings(DefaultSettings, metaclass=BaseSettingsMetaclass):
     """
     os.environ.setdefault('APP_BOOT_SETTINGS_MODULE', 'myapp.settings')
     """
+
     class Meta:
         settings_module = os.environ.get(ENVIRONMENT_VARIABLE)
 
