@@ -2,11 +2,11 @@ import sys
 import typing
 
 from pydantic import Field
-from pydantic._internal._model_construction import ModelMetaclass
 from sqlalchemy import inspect
 from sqlalchemy.orm import ColumnProperty
 from appboot.model import ModelT, Model, BaseSchema
 from appboot.repository import Repository, RepositoryT
+from appboot._compat import PydanticModelMetaclass
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -34,7 +34,7 @@ def _parse_field_from_sqlalchemy_model(model, attrs):
         attrs["__annotations__"] = __annotations__
 
 
-class ModelSchemaMetaclass(ModelMetaclass):
+class ModelSchemaMetaclass(PydanticModelMetaclass):
     def __new__(
             mcs,
             cls_name: str,
@@ -66,9 +66,9 @@ class RepositoryDescriptor:
 
 
 class BaseMeta:
-    model: typing.Type[ModelT] = Model
-    fields: typing.Iterable = []
-    repository_class: typing.Type[RepositoryT] = Repository
+    model: type[ModelT] = Model
+    fields: typing.Sequence = []
+    repository_class: type[RepositoryT] = Repository
 
 
 class ModelSchema(BaseSchema, metaclass=ModelSchemaMetaclass):
