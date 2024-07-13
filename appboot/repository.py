@@ -11,14 +11,10 @@ from appboot.model import SchemaT
 RepositoryT = typing.TypeVar('RepositoryT', bound='Repository')
 
 
-class Query:
-    pass
-
-
 class Repository(Generic[SchemaT]):
     schema: Type[SchemaT]
 
-    def __init__(self, schema: Type[SchemaT]):
+    def __init__(self, schema: Type[SchemaT], session: AsyncSession):
         self.schema = schema
         self.model = schema.Meta.model
         self.order_by = self.model.id.desc()
@@ -26,7 +22,7 @@ class Repository(Generic[SchemaT]):
         self.kw_where = {}
         self.slice = 0, 10000
         self.option_alive = True
-        self.session = AsyncSession()
+        self.session = session
 
     def reset(self):
         self.where = []
@@ -66,7 +62,7 @@ class Repository(Generic[SchemaT]):
         if self.option_alive:
             stmt = stmt.options(self.get_option())
         stmt = stmt.order_by(self.order_by).slice(*self.slice)
-        self.reset()
+        # self.reset()
         return stmt
 
     async def all(self) -> list[SchemaT]:

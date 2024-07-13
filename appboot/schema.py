@@ -4,6 +4,8 @@ import typing
 from pydantic import Field
 from sqlalchemy import inspect
 from sqlalchemy.orm import ColumnProperty
+
+from appboot.db import ScopedSession
 from appboot.model import ModelT, Model, BaseSchema
 from appboot.repository import Repository, RepositoryT
 from appboot._compat import PydanticModelMetaclass
@@ -62,7 +64,7 @@ class RepositoryDescriptor:
         self.repository_class = repository_class
 
     def __get__(self, instance, cls):
-        return self.repository_class(cls)
+        return self.repository_class(cls, ScopedSession())
 
 
 class BaseMeta:
@@ -75,12 +77,12 @@ class ModelSchema(BaseSchema, metaclass=ModelSchemaMetaclass):
     Meta: typing.ClassVar[BaseMeta] = BaseMeta()
     objects: typing.ClassVar[Repository[Self]]
 
-    async def save(self, flush=False):
+    async def save(self, flush: bool = False) -> Self:
         if self.id:
             obj = await self.objects.create(self, flush)
         else:
             obj = await self.objects.update(self, flush)
         return obj
 
-    async def delete(self, flush=False):
+    async def delete(self, flush: bool = False) -> Self:
         return await self.objects.delete(self, flush)
