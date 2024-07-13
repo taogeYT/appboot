@@ -38,6 +38,7 @@ clean:
 	rm -rf build
 	rm -rf dist
 	rm -rf coverage.xml
+	rm -rf examples/db.sqlite3
 
 .PHONY: help  ## Display this message
 help:

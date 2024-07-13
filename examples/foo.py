@@ -4,7 +4,6 @@ from pydantic import ConfigDict
 from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import declarative_base, relationship
 
-from appboot import settings
 from appboot.repository import Repository
 from appboot.schema import ModelSchema
 from appboot.utils import make_model_by_obj
@@ -45,10 +44,13 @@ class Demo(ModelSchema):
     model_config = ConfigDict(validate_assignment=True)
 
 
-def run():
-    print(settings.APP_NAME1)
+def main():
     pprint(Demo.schema())
     d = make_model_by_obj(Demo, {"id": 1})
     print(d.dict(exclude_defaults=True))
     dao = Demo.objects
     print(dao)
+
+
+if __name__ == "__main__":
+    main()
