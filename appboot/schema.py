@@ -6,7 +6,6 @@ from sqlalchemy import inspect
 from sqlalchemy.orm import ColumnProperty
 
 from appboot._compat import PydanticModelMetaclass
-from appboot.db import ScopedSession
 from appboot.model import BaseSchema, Model, ModelT
 from appboot.repository import Repository, RepositoryT
 
@@ -63,7 +62,7 @@ class RepositoryDescriptor:
         self.repository_class = repository_class
 
     def __get__(self, instance, cls):
-        return self.repository_class(cls, ScopedSession())
+        return self.repository_class(cls)
 
 
 class BaseMeta(object):
@@ -78,9 +77,9 @@ class ModelSchema(BaseSchema, metaclass=ModelSchemaMetaclass):
 
     async def save(self, flush: bool = False) -> Self:
         if self.id:
-            obj = await self.objects.create(self, flush)
-        else:
             obj = await self.objects.update(self, flush)
+        else:
+            obj = await self.objects.create(self, flush)
         return obj
 
     async def delete(self, flush: bool = False) -> Self:
