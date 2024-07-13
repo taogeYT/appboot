@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import with_loader_criteria
 
+from appboot.db import ScopedSession
 from appboot.model import SchemaT
 
 RepositoryT = typing.TypeVar("RepositoryT", bound="Repository")
@@ -23,11 +24,14 @@ class _Query(BaseModel):
 class Repository(Generic[SchemaT]):
     schema: Type[SchemaT]
 
-    def __init__(self, schema: Type[SchemaT], session: AsyncSession):
+    def __init__(self, schema: Type[SchemaT]):
         self.schema = schema
         self.model = schema.Meta.model
-        self.session = session
         self._query = _Query(order_by=self.model.id.desc())
+
+    @property
+    def session(self) -> AsyncSession:
+        return ScopedSession()
 
     def reset(self):
         self._query = _Query(order_by=self.model.id.desc())
