@@ -5,7 +5,7 @@ from pydantic import Field
 from sqlalchemy import inspect
 from sqlalchemy.orm import ColumnProperty
 
-from appboot._compat import PydanticModelMetaclass
+from appboot._compat import PYDANTIC_V2, PydanticModelMetaclass
 from appboot.model import BaseSchema, Model, ModelT
 from appboot.repository import Repository, RepositoryT
 
@@ -61,6 +61,7 @@ class ModelSchemaMetaclass(PydanticModelMetaclass):
             meta.repository_class = Repository
         include_fields = getattr(meta, "include_fields", None)
         exclude_fields = set(getattr(meta, "exclude_fields", set()))
+        exclude_fields.add("deleted_at")
         exclude_fields.update(_parse_bases_fields(bases))
         __dict__, __annotations__ = _parse_field_from_sqlalchemy_model(
             meta.model, include_fields, exclude_fields
@@ -103,3 +104,16 @@ class ModelSchema(BaseSchema, metaclass=ModelSchemaMetaclass):
 
     async def delete(self, flush: bool = False) -> Self:
         return await self.objects.delete(self, flush)
+
+    @classmethod
+    def from_sqlalchemy_model(cls: type[Self], instance: ModelT) -> Self:
+        # exclude _sa_instance_state
+        data = {
+            name: v for name, v in instance.__dict__.items() if not name.startswith("_")
+        }
+        if PYDANTIC_V2:
+            obj = cls.model_validate(data)
+        else:
+            obj = cls.parse_obj(data)
+        obj._instance = instance
+        return obj

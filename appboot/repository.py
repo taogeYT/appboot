@@ -71,12 +71,12 @@ class Repository(Generic[SchemaT]):
     async def all(self) -> list[SchemaT]:
         stmt = self.get_query()
         result = await self.session.scalars(stmt)
-        return [self.schema.model_validate(obj) for obj in result]
+        return [self.schema.from_sqlalchemy_model(obj) for obj in result]
 
     async def first(self) -> Optional[SchemaT]:
         stmt = self.get_query()
         obj = await self.session.scalar(stmt)
-        return self.schema.model_validate(obj) if obj else None
+        return self.schema.from_sqlalchemy_model(obj) if obj else None
 
     async def get(self, pk: int) -> Optional[SchemaT]:
         return await self.filter_by(id=pk).first()
@@ -90,23 +90,28 @@ class Repository(Generic[SchemaT]):
         self.session.add_all(instances)
         if flush:
             await self.session.flush()
-        return [self.schema.model_validate(ins) for ins in instances]
+        return [self.schema.from_sqlalchemy_model(ins) for ins in instances]
 
     async def create(self, obj: SchemaT, flush=False) -> SchemaT:
         instance = self.model(**obj.dict(exclude_defaults=True))
         self.session.add(instance)
         if flush:
             await self.session.flush()
-        return self.schema.model_validate(instance)
+        return self.schema.from_sqlalchemy_model(instance)
 
     async def update(self, obj: SchemaT, flush=False) -> SchemaT:
         if not obj.id:
             raise ValueError()
-        instance = await self.get(obj.id)
-        self.session.add(instance)
+        old = await self.get(obj.id)
+        if not old:
+            raise ValueError()
+        instance = old.instance
+        for name, value in obj.dict(exclude={"id", "created_at", "updated_at"}).items():
+            if hasattr(instance, name) and getattr(instance, name) != value:
+                setattr(instance, name, value)
         if flush:
             await self.session.flush()
-        return self.schema.model_validate(instance)
+        return self.schema.from_sqlalchemy_model(instance)
 
     async def delete(self, obj: SchemaT, flush=False) -> SchemaT:
         if not obj.id:
@@ -117,4 +122,4 @@ class Repository(Generic[SchemaT]):
         instance.deleted_at = datetime.datetime.now()
         if flush:
             await self.session.flush()
-        return self.schema.model_validate(instance)
+        return self.schema.from_sqlalchemy_model(instance)
