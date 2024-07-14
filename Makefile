@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-sources = pydantic tests examples
+sources = appboot examples
 
 .PHONY: .poetry  ## Check that poetry is installed
 .poetry:

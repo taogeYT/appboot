@@ -25,6 +25,9 @@ aiosqlite = "^0.20.0"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.poetry.scripts]
+appboot = 'appboot.commands:app'
+
 
 [tool.ruff]
 line-length = 88

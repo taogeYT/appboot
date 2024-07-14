@@ -39,6 +39,7 @@ class RepositoryA(Repository["Demo"]):
 class Demo(ModelSchema):
     class Meta:
         model = Address
+        exclude_fields = ["zip"]
         repository_class = RepositoryA
 
     model_config = ConfigDict(validate_assignment=True)
