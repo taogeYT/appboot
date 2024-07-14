@@ -29,5 +29,4 @@ class BaseSchema(BaseModel):
     id: int = Field(default=0)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
-    deleted_at: Optional[datetime] = Field(default=None)
     model_config = ConfigDict(from_attributes=True)
