@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "appboot"
-version = "0.1.0"
+version = "0.1.1"
 description = "boot web app project for python"
 authors = ["liyatao <liyatao001@gmail.com>"]
 readme = "README.md"
