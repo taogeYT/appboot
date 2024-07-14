@@ -15,12 +15,26 @@ else:
     Self = typing.TypeVar("Self", bound="ModelSchema")
 
 
-def _parse_field_from_sqlalchemy_model(model, attrs):
+def _parse_bases_fields(bases):
+    base_fields = set()
+    for base in bases:
+        if hasattr(base, "__fields__"):
+            base_fields.update(base.__fields__)
+    return base_fields
+
+
+def _parse_field_from_sqlalchemy_model(model, include=None, exclude=None):
+    __dict__ = {}
     __annotations__ = {}
+    _exclude = set() if exclude is None else set(exclude)
     mapper = inspect(model)
     for attr in mapper.attrs:
         if isinstance(attr, ColumnProperty):
             column_property = attr.class_attribute
+            if include and column_property.name not in include:
+                continue
+            if column_property.name in _exclude:
+                continue
             if column_property.nullable:
                 python_type = typing.Optional[column_property.type.python_type]
                 default = None
@@ -28,11 +42,8 @@ def _parse_field_from_sqlalchemy_model(model, attrs):
                 python_type = column_property.type.python_type
                 default = ...
             __annotations__[column_property.name] = python_type
-            attrs[column_property.name] = Field(default, title=column_property.doc)
-    if "__annotations__" in attrs:
-        attrs["__annotations__"].update(__annotations__)
-    else:
-        attrs["__annotations__"] = __annotations__
+            __dict__[column_property.name] = Field(default, title=column_property.doc)
+    return __dict__, __annotations__
 
 
 class ModelSchemaMetaclass(PydanticModelMetaclass):
@@ -43,15 +54,22 @@ class ModelSchemaMetaclass(PydanticModelMetaclass):
         namespace: dict[str, typing.Any],
         **kwargs: typing.Any,
     ) -> type:
-        # meta = namespace.pop('Meta', None)
-        if cls_name == "ModelSchema":
+        meta = namespace.get("Meta")
+        if meta is None or cls_name == "ModelSchema":
             return super().__new__(mcs, cls_name, bases, namespace, **kwargs)
-        meta = namespace["Meta"]
-        if hasattr(meta, "fields"):
-            pass
         if not hasattr(meta, "repository_class"):
             meta.repository_class = Repository
-        _parse_field_from_sqlalchemy_model(meta.model, namespace)
+        include_fields = getattr(meta, "include_fields", None)
+        exclude_fields = set(getattr(meta, "exclude_fields", set()))
+        exclude_fields.update(_parse_bases_fields(bases))
+        __dict__, __annotations__ = _parse_field_from_sqlalchemy_model(
+            meta.model, include_fields, exclude_fields
+        )
+        namespace.update(__dict__)
+        if "__annotations__" in namespace:
+            namespace["__annotations__"].update(__annotations__)
+        else:
+            namespace["__annotations__"] = __annotations__
         new_cls = super().__new__(mcs, cls_name, bases, namespace, **kwargs)
         setattr(new_cls, "objects", RepositoryDescriptor(meta.repository_class))
         return new_cls
@@ -67,7 +85,8 @@ class RepositoryDescriptor:
 
 class BaseMeta(object):
     model: type[ModelT] = Model  # type: ignore
-    fields: typing.Sequence = []
+    include_fields: typing.Sequence = []
+    exclude_fields: typing.Sequence = []
     repository_class: type[RepositoryT] = Repository  # type: ignore
 
 
