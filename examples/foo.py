@@ -37,6 +37,8 @@ class RepositoryA(Repository["Demo"]):
 
 
 class Demo(ModelSchema):
+    user_id: int = 1
+
     class Meta:
         model = Address
         exclude_fields = ["zip"]
@@ -46,7 +48,7 @@ class Demo(ModelSchema):
 
 
 def main():
-    pprint(Demo.schema())
+    pprint(Demo.__fields__)
     d = make_model_by_obj(Demo, {"id": 1})
     print(d.dict(exclude_defaults=True))
     dao = Demo.objects

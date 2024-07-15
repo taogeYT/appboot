@@ -66,12 +66,11 @@ class ModelSchemaMetaclass(PydanticModelMetaclass):
         __dict__, __annotations__ = _parse_field_from_sqlalchemy_model(
             meta.model, include_fields, exclude_fields
         )
-        namespace.update(__dict__)
+        __dict__.update(namespace)
         if "__annotations__" in namespace:
-            namespace["__annotations__"].update(__annotations__)
-        else:
-            namespace["__annotations__"] = __annotations__
-        new_cls = super().__new__(mcs, cls_name, bases, namespace, **kwargs)
+            __annotations__.update(namespace["__annotations__"])
+        __dict__["__annotations__"] = __annotations__
+        new_cls = super().__new__(mcs, cls_name, bases, __dict__, **kwargs)
         setattr(new_cls, "objects", RepositoryDescriptor(meta.repository_class))
         return new_cls
 
