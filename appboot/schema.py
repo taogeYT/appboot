@@ -1,7 +1,7 @@
 import sys
 import typing
 
-from pydantic import Field
+from pydantic import BaseModel, Field, create_model
 from sqlalchemy import inspect
 from sqlalchemy.orm import ColumnProperty
 
@@ -15,6 +15,20 @@ if sys.version_info >= (3, 11):
     from typing import Self
 else:
     Self = typing.TypeVar("Self", bound="ModelSchema")
+
+
+def clone_model(
+    name: str, base: type[BaseModel], exclude_fields: set[str]
+) -> type[BaseModel]:
+    original_fields: dict[str, typing.Any] = base.model_fields
+    new_fields: dict[str, typing.Any] = {
+        name: (field.annotation, field.default)
+        for name, field in original_fields.items()
+        if name not in exclude_fields
+    }
+
+    new_model = create_model(name, __config__=base.model_config, **new_fields)
+    return new_model
 
 
 def _parse_bases_fields(bases):
@@ -95,6 +109,8 @@ class BaseMeta(object):
 class ModelSchema(BaseSchema, metaclass=ModelSchemaMetaclass):
     Meta: typing.ClassVar[BaseMeta] = BaseMeta()
     objects: typing.ClassVar[Repository[Self]]  # type: ignore
+    # create_schema: typing.ClassVar[type[BaseModel]] = BaseModel
+    # update_schema: typing.ClassVar[type[BaseModel]] = BaseModel
 
     async def save(self, flush: bool = False) -> Self:
         if self.id:
@@ -118,3 +134,19 @@ class ModelSchema(BaseSchema, metaclass=ModelSchemaMetaclass):
             obj = cls.parse_obj(data)
         obj._instance = instance
         return obj
+
+    @classmethod
+    def clone_cls(cls, name: str, exclude: set[str]):
+        return clone_model(name, cls, exclude_fields=exclude)
+
+    @classmethod
+    def make_create_schema(cls) -> type[BaseModel]:
+        return cls.clone_cls(
+            f"Create{cls.__fields__}", exclude={"id", "created_at", "updated_at"}
+        )
+
+    @classmethod
+    def make_update_schema(cls) -> type[BaseModel]:
+        return cls.clone_cls(
+            f"Update{cls.__fields__}", exclude={"id", "created_at", "updated_at"}
+        )
