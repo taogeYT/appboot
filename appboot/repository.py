@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import with_loader_criteria
 
 from appboot.db import ScopedSession
-from appboot.model import SchemaT
+from appboot.models import SchemaT
 
 RepositoryT = typing.TypeVar("RepositoryT", bound="Repository")
 

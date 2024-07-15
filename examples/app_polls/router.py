@@ -1,8 +1,8 @@
 from fastapi import Depends, FastAPI
 
 from app_polls.schema import QuestionSchema
-from appboot import Model, settings, transaction
-from appboot.db import engine
+from appboot import Model, settings
+from appboot.db import engine, transaction
 
 
 # 创建表
