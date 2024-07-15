@@ -6,8 +6,10 @@ from sqlalchemy import inspect
 from sqlalchemy.orm import ColumnProperty
 
 from appboot._compat import PYDANTIC_V2, PydanticModelMetaclass
-from appboot.model import BaseSchema, Model, ModelT
+from appboot.models import BaseSchema, Model, ModelT
 from appboot.repository import Repository, RepositoryT
+
+ModelSchemaT = typing.TypeVar("ModelSchemaT", bound="ModelSchema")
 
 if sys.version_info >= (3, 11):
     from typing import Self
