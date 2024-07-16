@@ -6,7 +6,7 @@ from sqlalchemy import inspect
 from sqlalchemy.orm import ColumnProperty
 
 from appboot._compat import PYDANTIC_V2, PydanticModelMetaclass
-from appboot.models import BaseSchema, Model, ModelT
+from appboot.models import BaseModelSchema, Model, ModelT
 from appboot.repository import Repository, RepositoryT
 
 ModelSchemaT = typing.TypeVar("ModelSchemaT", bound="ModelSchema")
@@ -106,21 +106,18 @@ class BaseMeta(object):
     repository_class: type[RepositoryT] = Repository  # type: ignore
 
 
-class ModelSchema(BaseSchema, metaclass=ModelSchemaMetaclass):
+class ModelSchema(BaseModelSchema, metaclass=ModelSchemaMetaclass):
     Meta: typing.ClassVar[BaseMeta] = BaseMeta()
-    objects: typing.ClassVar[Repository[Self]]  # type: ignore
+    # objects: typing.ClassVar[Repository[Self]]  # type: ignore
     # create_schema: typing.ClassVar[type[BaseModel]] = BaseModel
     # update_schema: typing.ClassVar[type[BaseModel]] = BaseModel
 
-    async def save(self, flush: bool = False) -> Self:
-        if self.id:
-            obj = await self.objects.update(self, flush)
-        else:
-            obj = await self.objects.create(self, flush)
-        return obj
-
-    async def delete(self, flush: bool = False) -> Self:
-        return await self.objects.delete(self, flush)
+    # async def save(self, flush: bool = False) -> Self:
+    #     if self.id:
+    #         instance = await self.Meta.model.objects.update(self, flush)
+    #     else:
+    #         instance = await self.Meta.model.objects.create(self, flush)
+    #     return instance
 
     @classmethod
     def from_sqlalchemy_model(cls: type[Self], instance: ModelT) -> Self:
