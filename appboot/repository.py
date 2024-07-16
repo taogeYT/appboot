@@ -1,6 +1,6 @@
 import datetime
 import typing
-from typing import Generic, Optional, Type
+from typing import Generic, Optional, Sequence, Type
 
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import with_loader_criteria
 
 from appboot.db import ScopedSession
-from appboot.models import SchemaT
+from appboot.interfaces import BaseRepository
+from appboot.models import ModelT
 
 RepositoryT = typing.TypeVar("RepositoryT", bound="Repository")
 
@@ -21,12 +22,9 @@ class _Query(BaseModel):
     option_alive: bool = True
 
 
-class Repository(Generic[SchemaT]):
-    schema: Type[SchemaT]
-
-    def __init__(self, schema: Type[SchemaT]):
-        self.schema = schema
-        self.model = schema.Meta.model
+class Repository(BaseRepository[ModelT], Generic[ModelT]):
+    def __init__(self, model: Type[ModelT]):
+        self.model = model
         self._query = _Query(order_by=self.model.id.desc())
 
     @property
@@ -65,61 +63,58 @@ class Repository(Generic[SchemaT]):
         if self._query.option_alive:
             stmt = stmt.options(self.get_option())
         stmt = stmt.order_by(self._query.order_by).slice(*self._query.slice)
-        # self.reset()
         return stmt
 
-    async def all(self) -> list[SchemaT]:
+    async def all(self) -> Sequence[ModelT]:
         stmt = self.get_query()
         result = await self.session.scalars(stmt)
-        return [self.schema.from_sqlalchemy_model(obj) for obj in result]
+        return result.all()
 
-    async def first(self) -> Optional[SchemaT]:
+    async def first(self) -> Optional[ModelT]:
         stmt = self.get_query()
         obj = await self.session.scalar(stmt)
-        return self.schema.from_sqlalchemy_model(obj) if obj else None
+        return obj
 
-    async def get(self, pk: int) -> Optional[SchemaT]:
+    async def get(self, pk: int) -> Optional[ModelT]:
         return await self.filter_by(id=pk).first()
 
-    async def mget(self, pks: list[int]) -> dict[int, SchemaT]:
+    async def mget(self, pks: list[int]) -> dict[int, ModelT]:
         objs = await self.filter(self.model.id.in_(pks)).all()
         return {obj.id: obj for obj in objs}
 
-    async def bulk_create(self, objs: list[SchemaT], flush=False) -> list[SchemaT]:
+    async def bulk_create(self, objs: list[BaseModel], flush=False) -> list[ModelT]:
         instances = [self.model(**obj.dict(exclude_defaults=True)) for obj in objs]
         self.session.add_all(instances)
         if flush:
             await self.session.flush()
-        return [self.schema.from_sqlalchemy_model(ins) for ins in instances]
+        return instances
 
-    async def create(self, obj: SchemaT, flush=False) -> SchemaT:
+    async def create(self, obj: BaseModel, flush=False) -> ModelT:
         instance = self.model(**obj.dict(exclude_defaults=True))
         self.session.add(instance)
         if flush:
             await self.session.flush()
-        return self.schema.from_sqlalchemy_model(instance)
+        return instance
 
-    async def update(self, obj: SchemaT, flush=False) -> SchemaT:
-        if not obj.id:
+    async def update(self, pk: int, obj: BaseModel, flush=False) -> ModelT:
+        if not pk:
             raise ValueError()
-        old = await self.get(obj.id)
+        old = await self.get(pk)
         if not old:
             raise ValueError()
-        instance = old.instance
+        instance = old
         for name, value in obj.dict(exclude={"id", "created_at", "updated_at"}).items():
             if hasattr(instance, name) and getattr(instance, name) != value:
                 setattr(instance, name, value)
         if flush:
             await self.session.flush()
-        return self.schema.from_sqlalchemy_model(instance)
+        return instance
 
-    async def delete(self, obj: SchemaT, flush=False) -> SchemaT:
-        if not obj.id:
-            raise ValueError()
-        instance = await self.session.get(self.model, obj.id)
+    async def delete(self, pk: int, flush=False) -> ModelT:
+        instance = await self.get(pk)
         if not instance:
             raise ValueError()
         instance.deleted_at = datetime.datetime.now()
         if flush:
             await self.session.flush()
-        return self.schema.from_sqlalchemy_model(instance)
+        return instance
