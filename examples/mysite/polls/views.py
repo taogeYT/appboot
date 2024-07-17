@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends
 
 from appboot import Model
-from appboot.db import engine, transaction
+from appboot.db import engine
 from polls.models import Question
 from polls.schema import QuestionSchema
 
@@ -12,44 +12,31 @@ async def create_tables():
         await conn.run_sync(Model.metadata.create_all)
 
 
-async def get_session():
-    await create_tables()
-    async with transaction() as session:
-        yield session
-
-
-router = APIRouter(prefix="/polls", tags=["polls"], dependencies=[Depends(get_session)])
+router = APIRouter(
+    prefix="/polls", tags=["polls"], dependencies=[Depends(create_tables)]
+)
 
 
 @router.post("/questions/", response_model=QuestionSchema)
 async def create_question(question: QuestionSchema):
-    r = await Question.objects.create(question, flush=True)
-    return r
+    return await Question.objects.create(question, flush=True)
 
 
 @router.get("/questions/", response_model=list[QuestionSchema])
-async def read_questions():
-    return await Question.objects.all()
+async def query_questions(limit: int = 10, offset: int = 0):
+    return await Question.objects.limit(limit).offset(offset).all()
 
 
 @router.get("/questions/{question_id}", response_model=QuestionSchema)
-async def read_question(question_id: int):
-    obj = await Question.objects.get(question_id)
-    if obj is None:
-        raise ValueError("Question not found")
-    return
+async def get_question(question_id: int):
+    return await Question.objects.get(question_id)
 
 
 @router.put("/questions/{question_id}", response_model=QuestionSchema)
 async def update_question(question_id: int, question: QuestionSchema):
-    obj = await Question.objects.update(question_id, question)
-    return obj
+    return await Question.objects.update(question_id, question)
 
 
 @router.delete("/questions/{question_id}", response_model=QuestionSchema)
 async def delete_question(question_id: int):
-    obj = await Question.objects.get(question_id)
-    if obj is None:
-        raise ValueError("Question not found")
-    obj.delete()
-    return obj
+    return await Question.objects.delete(question_id, flush=True)
