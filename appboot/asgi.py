@@ -22,10 +22,10 @@ def get_fastapi_application():
     app = FastAPI(
         title=settings.PROJECT_NAME,
         **settings.FASTAPI_CONFIG.dict(),
-        dependencies=[Depends(transaction)],
+        dependencies=[Depends(get_session)],
     )
     app.add_middleware(
-        CORSMiddleware,  # type ignore
+        CORSMiddleware,  # type: ignore[unused-ignore]
         allow_origins=settings.ALLOWED_HOSTS,
         allow_methods=settings.ALLOW_METHODS,
         allow_headers=settings.ALLOW_HEADERS,
@@ -49,7 +49,3 @@ def fastapi_register_routers(app: FastAPI):
     mod = importlib.import_module(settings.ROOT_URLCONF)
     for r in mod.routers:
         app.include_router(r)
-
-    @app.get("/ping", summary="ping")
-    async def ping():
-        return {"data": "pong"}
