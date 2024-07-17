@@ -5,11 +5,10 @@ from typing import Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func
-from sqlalchemy.orm import DeclarativeBase, MappedColumn, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from appboot.interfaces import BaseRepository
 
-Mapped = MappedColumn
 Column = mapped_column
 ModelT = TypeVar("ModelT", bound="Model")
 SchemaT = TypeVar("SchemaT", bound="BaseModelSchema")
@@ -19,16 +18,8 @@ else:
     Self = typing.Annotated[ModelT, "Self"]
 
 
-class RepositoryDescriptor:
-    def __init__(self, repository_class):
-        self.repository_class = repository_class
-
-    def __get__(self, instance, cls):
-        return self.repository_class(cls)
-
-
 class Model(DeclarativeBase):
-    repository_class: typing.ClassVar[typing.Optional[type[BaseRepository]]] = None
+    # repository_class: typing.ClassVar[typing.Optional[type[BaseRepository]]]
     objects: typing.ClassVar[BaseRepository[Self]]
 
     id: Mapped[int] = Column(primary_key=True)
@@ -37,12 +28,10 @@ class Model(DeclarativeBase):
     deleted_at: Mapped[Optional[datetime]] = Column(default=None)
 
     def __init_subclass__(cls, **kwargs: dict[str, typing.Any]):
-        if cls.repository_class is None:
-            from appboot.repository import Repository
+        from appboot.repository import Repository
 
-            cls.repository_class = Repository
         super().__init_subclass__(**kwargs)
-        cls.objects = RepositoryDescriptor(cls.repository_class)  # type: ignore
+        cls.objects = Repository()
 
     def delete(self) -> None:
         if self.deleted_at is None:
