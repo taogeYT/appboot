@@ -10,3 +10,8 @@ from appboot.asgi import get_asgi_application
 os.environ.setdefault('APP_BOOT_SETTINGS_MODULE', '{{ project_name }}.settings')
 
 application = get_asgi_application()
+
+
+@application.get("/ping", summary="ping")
+async def ping():
+    return {"data": "pong"}
