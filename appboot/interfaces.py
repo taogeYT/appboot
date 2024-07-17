@@ -1,10 +1,11 @@
-from typing import Optional, Protocol, Sequence, TypeVar
+from typing import Optional, Protocol, Sequence, TypeVar, runtime_checkable
 
 from pydantic import BaseModel
 
 T = TypeVar("T")
 
 
+@runtime_checkable
 class BaseRepository(Protocol[T]):
     def disable_option(self):
         ...
@@ -18,7 +19,13 @@ class BaseRepository(Protocol[T]):
     def filter_by(self, **kwargs):
         ...
 
-    def limit(self, limit, offset=0):
+    def limit(self, num: int):
+        ...
+
+    def offset(self, num: int):
+        ...
+
+    def slice(self, start: int, end: int):
         ...
 
     def get_query(self):

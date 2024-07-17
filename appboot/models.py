@@ -19,7 +19,16 @@ else:
     Self = typing.Annotated[ModelT, "Self"]
 
 
+class RepositoryDescriptor:
+    def __init__(self, repository_class):
+        self.repository_class = repository_class
+
+    def __get__(self, instance, cls):
+        return self.repository_class(cls)
+
+
 class Model(DeclarativeBase):
+    repository_class: typing.ClassVar[typing.Optional[type[BaseRepository]]] = None
     objects: typing.ClassVar[BaseRepository[Self]]
 
     id: Mapped[int] = Column(primary_key=True)
@@ -28,14 +37,16 @@ class Model(DeclarativeBase):
     deleted_at: Mapped[Optional[datetime]] = Column(default=None)
 
     def __init_subclass__(cls, **kwargs: dict[str, typing.Any]):
-        from appboot.repository import Repository
+        if cls.repository_class is None:
+            from appboot.repository import Repository
 
+            cls.repository_class = Repository
         super().__init_subclass__(**kwargs)
-        cls.objects = Repository(cls)
+        cls.objects = RepositoryDescriptor(cls.repository_class)  # type: ignore
 
-    def delete(self):
+    def delete(self) -> None:
         if self.deleted_at is None:
-            self.deleted_at = datetime.now()
+            self.deleted_at: datetime = datetime.now()
 
 
 class OperatorMixin:

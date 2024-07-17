@@ -7,7 +7,7 @@ from sqlalchemy.orm import ColumnProperty
 
 from appboot._compat import PYDANTIC_V2, PydanticModelMetaclass
 from appboot.models import BaseModelSchema, Model, ModelT
-from appboot.repository import Repository, RepositoryT
+from appboot.repository import Repository
 
 ModelSchemaT = typing.TypeVar("ModelSchemaT", bound="ModelSchema")
 
@@ -87,37 +87,19 @@ class ModelSchemaMetaclass(PydanticModelMetaclass):
             __annotations__.update(namespace["__annotations__"])
         __dict__["__annotations__"] = __annotations__
         new_cls = super().__new__(mcs, cls_name, bases, __dict__, **kwargs)
-        setattr(new_cls, "objects", RepositoryDescriptor(meta.repository_class))
         return new_cls
 
 
-class RepositoryDescriptor:
-    def __init__(self, repository_class):
-        self.repository_class = repository_class
-
-    def __get__(self, instance, cls):
-        return self.repository_class(cls)
-
-
-class BaseMeta(object):
+class BaseMeta:
     model: type[ModelT] = Model  # type: ignore
     include_fields: typing.Sequence = []
     exclude_fields: typing.Sequence = []
-    repository_class: type[RepositoryT] = Repository  # type: ignore
 
 
 class ModelSchema(BaseModelSchema, metaclass=ModelSchemaMetaclass):
-    Meta: typing.ClassVar[BaseMeta] = BaseMeta()
-    # objects: typing.ClassVar[Repository[Self]]  # type: ignore
+    Meta: typing.ClassVar[type[BaseMeta]] = BaseMeta
     # create_schema: typing.ClassVar[type[BaseModel]] = BaseModel
     # update_schema: typing.ClassVar[type[BaseModel]] = BaseModel
-
-    # async def save(self, flush: bool = False) -> Self:
-    #     if self.id:
-    #         instance = await self.Meta.model.objects.update(self, flush)
-    #     else:
-    #         instance = await self.Meta.model.objects.create(self, flush)
-    #     return instance
 
     @classmethod
     def from_sqlalchemy_model(cls: type[Self], instance: ModelT) -> Self:
