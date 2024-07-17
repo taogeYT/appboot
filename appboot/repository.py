@@ -25,16 +25,27 @@ class _Query(BaseModel):
 
 
 class Repository(BaseRepository[ModelT], Generic[ModelT]):
-    def __init__(self, model: type[ModelT]):
-        self.model = model
-        self._query = _Query(order_by=self.model.id.desc())
+    def __init__(self, model: Optional[type[ModelT]] = None):
+        self._model = model
+        if self._model is None:
+            self._query = _Query(order_by=None)
+        else:
+            self._query = _Query(order_by=self.model.id.desc())
+
+    def __get__(self, instance, cls):
+        if instance is None:
+            return self.__class__(cls)
+        raise AttributeError("instance is not yet assigned")
+
+    @property
+    def model(self) -> type[ModelT]:
+        if self._model is None:
+            raise AttributeError("model is not set")
+        return self._model
 
     @property
     def session(self) -> AsyncSession:
         return ScopedSession()
-
-    def reset(self):
-        self._query = _Query(order_by=self.model.id.desc())
 
     def disable_option(self):
         self._query.option_alive = False
