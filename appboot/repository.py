@@ -1,14 +1,15 @@
 import datetime
 import typing
-from typing import Generic, Optional, Sequence
+from typing import Any, Generic, Optional, Sequence
 
 from pydantic import BaseModel, Field
-from sqlalchemy import inspect, select
+from sqlalchemy import Column, inspect, select
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
 from appboot.db import Base, ScopedSession
 from appboot.exceptions import DoesNotExist
 from appboot.interfaces import BaseRepository
+from appboot.schema import ModelSchema
 
 ModelT = typing.TypeVar("ModelT", bound=Base)
 
@@ -31,12 +32,14 @@ class _Query(BaseModel):
 class Repository(BaseRepository[ModelT], Generic[ModelT]):
     def __init__(self, model: Optional[type[ModelT]] = None):
         self._model = model
+        self._primary_key = ()
         if self._model is None:
             self._query = _Query(order_by=None)
         else:
             mapper = inspect(model)
             if mapper is None or not mapper.is_mapper:
                 raise ValueError("Expected mapped class or mapper, got: %r" % model)
+            self._primary_key = mapper.primary_key
             self._query = _Query(order_by=mapper.primary_key)
             if self.model.__deleted_at_option__:
                 self.options(self.model.__deleted_at_option__)
@@ -51,6 +54,10 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         if self._model is None:
             raise ValueError("Model is not set")
         return self._model
+
+    @property
+    def primary_key(self) -> tuple[Column[Any], ...]:
+        return self._primary_key
 
     @property
     def session(self) -> AsyncSession:
@@ -119,23 +126,29 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
             raise DoesNotExist(f"{self.model.__name__}.{pk}")
         return obj
 
-    async def bulk_create(self, objs: list[BaseModel], flush=False) -> list[ModelT]:
-        instances = [self.model(**obj.dict(exclude_defaults=True)) for obj in objs]
+    def _model_dump_for_write(self, obj: ModelSchema) -> dict[str, Any]:
+        read_only_fields = set(obj.Meta.read_only_fields) | set(
+            c.name for c in self.primary_key
+        )
+        return obj.dict(exclude=read_only_fields, exclude_unset=True)
+
+    async def bulk_create(self, objs: list[ModelSchema], flush=False) -> list[ModelT]:
+        instances = [self.model(**self._model_dump_for_write(obj)) for obj in objs]
         self.session.add_all(instances)
         if flush:
             await self.session.flush()
         return instances
 
-    async def create(self, obj: BaseModel, flush=False) -> ModelT:
-        instance = self.model(**obj.dict(exclude_defaults=True))
+    async def create(self, obj: ModelSchema, flush=False) -> ModelT:
+        instance = self.model(**self._model_dump_for_write(obj))
         self.session.add(instance)
         if flush:
             await self.session.flush()
         return instance
 
-    async def update(self, pk: int, obj: BaseModel, flush=False) -> ModelT:
+    async def update(self, pk: int, obj: ModelSchema, flush=False) -> ModelT:
         instance = await self.get(pk)
-        for name, value in obj.dict(exclude={"id"}).items():
+        for name, value in self._model_dump_for_write(obj).items():
             if hasattr(instance, name) and getattr(instance, name) != value:
                 setattr(instance, name, value)
         if flush:
