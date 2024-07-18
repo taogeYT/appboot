@@ -123,7 +123,7 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
     async def get(self, pk: typing.Any) -> ModelT:
         obj = await self.session.get(self.model, pk, options=self._query.get_options())
         if not obj:
-            raise DoesNotExist(f"{self.model.__name__}.{pk}")
+            raise DoesNotExist(f"{self.model.__name__}.{pk} DoesNotExist")
         return obj
 
     def _model_dump_for_write(self, obj: ModelSchema) -> dict[str, Any]:
