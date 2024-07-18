@@ -1,14 +1,18 @@
 import typing
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 from sqlalchemy import inspect
 from sqlalchemy.orm import ColumnProperty
+from typing_extensions import Self
 
-from appboot._compat import PydanticModelMetaclass
+from appboot._compat import PYDANTIC_V2, PydanticModelMetaclass
 from appboot.db import Base
-from appboot.repository import Repository
 
 ModelSchemaT = typing.TypeVar("ModelSchemaT", bound="ModelSchema")
+IncEx = typing.Union[
+    set[int], set[str], dict[int, typing.Any], dict[str, typing.Any], None
+]
 
 
 def clone_model(
@@ -25,6 +29,10 @@ def clone_model(
     return new_model
 
 
+def get_meta_config(meta):
+    type("Meta", (BaseMeta,), meta.__dict__)
+
+
 def _parse_bases_fields(bases):
     base_fields = set()
     for base in bases:
@@ -33,10 +41,13 @@ def _parse_bases_fields(bases):
     return base_fields
 
 
-def _parse_field_from_sqlalchemy_model(model, include=None, exclude=None):
+def _parse_field_from_sqlalchemy_model(
+    model, include=None, exclude=None, write_only_fields=None
+):
     __dict__ = {}
     __annotations__ = {}
     _exclude = set() if exclude is None else set(exclude)
+    _write_only_fields = set() if write_only_fields is None else set(write_only_fields)
     mapper = inspect(model)
     for attr in mapper.attrs:
         if isinstance(attr, ColumnProperty):
@@ -52,9 +63,16 @@ def _parse_field_from_sqlalchemy_model(model, include=None, exclude=None):
                 python_type = column_property.type.python_type
                 default = ...
             __annotations__[column_property.name] = python_type
-            __dict__[column_property.name] = Field(
-                default, title=column_property.doc or column_property.name
-            )
+            if column_property.name in _write_only_fields:
+                __dict__[column_property.name] = Field(
+                    default,
+                    title=column_property.doc or column_property.name,
+                    exclude=True,
+                )
+            else:
+                __dict__[column_property.name] = Field(
+                    default, title=column_property.doc or column_property.name
+                )
     return __dict__, __annotations__
 
 
@@ -71,14 +89,13 @@ class ModelSchemaMetaclass(PydanticModelMetaclass):
         meta = namespace.get("Meta")
         if meta is None:
             raise ValueError("'Meta' is required for ModelSchema")
-        if not hasattr(meta, "repository_class"):
-            meta.repository_class = Repository
+        namespace["Meta"] = type("Meta", (BaseMeta,), dict(meta.__dict__))
         include_fields = getattr(meta, "fields", None)
         exclude_fields = set(getattr(meta, "exclude", set()))
         exclude_fields.add("deleted_at")
         exclude_fields.update(_parse_bases_fields(bases))
         __dict__, __annotations__ = _parse_field_from_sqlalchemy_model(
-            meta.model, include_fields, exclude_fields
+            meta.model, include_fields, exclude_fields, None
         )
         __dict__.update(namespace)
         if "__annotations__" in namespace:
@@ -89,15 +106,88 @@ class ModelSchemaMetaclass(PydanticModelMetaclass):
 
 
 class Schema(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    if PYDANTIC_V2:
+        model_config = ConfigDict(from_attributes=True)
+    else:
+
+        class Config:
+            orm_mode = True
+
+    @classmethod
+    def parse_obj(cls, obj: Any) -> Self:  # noqa: D102
+        if PYDANTIC_V2:
+            return cls.model_validate(obj)
+        else:
+            return super().parse_obj(obj)
+
+    @classmethod
+    def from_orm(cls, obj: Any) -> Self:
+        if PYDANTIC_V2:
+            return cls.model_validate(obj)
+        else:
+            return super().from_orm(obj)
+
+    def dict(
+        self,
+        *,
+        include: IncEx = None,
+        exclude: IncEx = None,
+        by_alias: bool = False,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+    ) -> dict[str, typing.Any]:
+        if PYDANTIC_V2:
+            return self.model_dump(
+                include=include,
+                exclude=exclude,
+                by_alias=by_alias,
+                exclude_unset=exclude_unset,
+                exclude_defaults=exclude_defaults,
+                exclude_none=exclude_none,
+            )
+        else:
+            return super().dict(
+                include=include,
+                exclude=exclude,
+                by_alias=by_alias,
+                exclude_unset=exclude_unset,
+                exclude_defaults=exclude_defaults,
+                exclude_none=exclude_none,
+            )
 
 
 class BaseMeta:
     model: type[Base] = Base
-    fields: typing.Sequence[str] = []
-    exclude: typing.Sequence[str] = []
-    read_only_fields: typing.Sequence[str] = []  # pk is read only by default
+    fields: typing.Sequence[str] = ()
+    exclude: typing.Sequence[str] = ()
+    read_only_fields: typing.Sequence[str] = ()  # pk is read only by default
 
 
 class ModelSchema(Schema, metaclass=ModelSchemaMetaclass):
     Meta: typing.ClassVar[type[BaseMeta]]
+
+    # def dict(self,
+    #          *,
+    #          include: IncEx = None,
+    #          exclude: IncEx = None,
+    #          by_alias: bool = False,
+    #          exclude_unset: bool = False,
+    #          exclude_defaults: bool = False,
+    #          exclude_none: bool = False
+    #          ) -> dict[str, typing.Any]:
+    #     read_only_fields: typing.Iterable[str] = tuple(self.Meta.read_only_fields) + ('id',)
+    #     if not exclude:
+    #         exclude = set()
+    #     if isinstance(exclude, set):
+    #         typing.cast(set[str], exclude).update(read_only_fields)
+    #     if isinstance(exclude, dict):
+    #         typing.cast(dict[str, typing.Any], exclude).update({f: True for f in read_only_fields})
+    #     return super().dict(
+    #         include=include,
+    #         exclude=exclude,
+    #         by_alias=by_alias,
+    #         exclude_unset=exclude_unset,
+    #         exclude_defaults=exclude_defaults,
+    #         exclude_none=exclude_none,
+    #     )
