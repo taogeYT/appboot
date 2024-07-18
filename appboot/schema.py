@@ -1,20 +1,14 @@
-import sys
 import typing
 
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, ConfigDict, Field, create_model
 from sqlalchemy import inspect
 from sqlalchemy.orm import ColumnProperty
 
-from appboot._compat import PYDANTIC_V2, PydanticModelMetaclass
-from appboot.models import BaseModelSchema, Model, ModelT
+from appboot._compat import PydanticModelMetaclass
+from appboot.db import Base
 from appboot.repository import Repository
 
 ModelSchemaT = typing.TypeVar("ModelSchemaT", bound="ModelSchema")
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    Self = typing.TypeVar("Self", bound="ModelSchema")
 
 
 def clone_model(
@@ -58,7 +52,9 @@ def _parse_field_from_sqlalchemy_model(model, include=None, exclude=None):
                 python_type = column_property.type.python_type
                 default = ...
             __annotations__[column_property.name] = python_type
-            __dict__[column_property.name] = Field(default, title=column_property.doc)
+            __dict__[column_property.name] = Field(
+                default, title=column_property.doc or column_property.name
+            )
     return __dict__, __annotations__
 
 
@@ -70,13 +66,15 @@ class ModelSchemaMetaclass(PydanticModelMetaclass):
         namespace: dict[str, typing.Any],
         **kwargs: typing.Any,
     ) -> type:
-        meta = namespace.get("Meta")
-        if meta is None or cls_name == "ModelSchema":
+        if cls_name == "ModelSchema":
             return super().__new__(mcs, cls_name, bases, namespace, **kwargs)
+        meta = namespace.get("Meta")
+        if meta is None:
+            raise ValueError("'Meta' is required for ModelSchema")
         if not hasattr(meta, "repository_class"):
             meta.repository_class = Repository
-        include_fields = getattr(meta, "include_fields", None)
-        exclude_fields = set(getattr(meta, "exclude_fields", set()))
+        include_fields = getattr(meta, "fields", None)
+        exclude_fields = set(getattr(meta, "exclude", set()))
         exclude_fields.add("deleted_at")
         exclude_fields.update(_parse_bases_fields(bases))
         __dict__, __annotations__ = _parse_field_from_sqlalchemy_model(
@@ -90,42 +88,16 @@ class ModelSchemaMetaclass(PydanticModelMetaclass):
         return new_cls
 
 
+class Schema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+
 class BaseMeta:
-    model: type[ModelT] = Model  # type: ignore
-    include_fields: typing.Sequence = []
-    exclude_fields: typing.Sequence = []
+    model: type[Base] = Base
+    fields: typing.Sequence[str] = []
+    exclude: typing.Sequence[str] = []
+    read_only_fields: typing.Sequence[str] = []  # pk is read only by default
 
 
-class ModelSchema(BaseModelSchema, metaclass=ModelSchemaMetaclass):
-    Meta: typing.ClassVar[type[BaseMeta]] = BaseMeta
-    # create_schema: typing.ClassVar[type[BaseModel]] = BaseModel
-    # update_schema: typing.ClassVar[type[BaseModel]] = BaseModel
-
-    @classmethod
-    def from_sqlalchemy_model(cls: type[Self], instance: ModelT) -> Self:
-        # exclude _sa_instance_state
-        data = {
-            name: v for name, v in instance.__dict__.items() if not name.startswith("_")
-        }
-        if PYDANTIC_V2:
-            obj = cls.model_validate(data)
-        else:
-            obj = cls.parse_obj(data)
-        obj._instance = instance
-        return obj
-
-    @classmethod
-    def clone_cls(cls, name: str, exclude: set[str]):
-        return clone_model(name, cls, exclude_fields=exclude)
-
-    @classmethod
-    def make_create_schema(cls) -> type[BaseModel]:
-        return cls.clone_cls(
-            f"Create{cls.__fields__}", exclude={"id", "created_at", "updated_at"}
-        )
-
-    @classmethod
-    def make_update_schema(cls) -> type[BaseModel]:
-        return cls.clone_cls(
-            f"Update{cls.__fields__}", exclude={"id", "created_at", "updated_at"}
-        )
+class ModelSchema(Schema, metaclass=ModelSchemaMetaclass):
+    Meta: typing.ClassVar[type[BaseMeta]]
