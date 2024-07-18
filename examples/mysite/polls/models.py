@@ -2,18 +2,17 @@
 from datetime import datetime
 
 from sqlalchemy import ForeignKey, Integer
+from sqlalchemy.orm import Mapped, mapped_column
 
 from appboot import models
 
 
 class Question(models.Model):
-    __tablename__ = "question"
-    question_text: models.Mapped[str]
-    pub_date: models.Mapped[datetime]
+    question_text: Mapped[str]
+    pub_date: Mapped[datetime]
 
 
 class Choice(models.Model):
-    __tablename__ = "choice"
-    question_id: models.Mapped[int] = models.Column(Integer, ForeignKey("question.id"))
-    choice_text: models.Mapped[str]
-    votes: models.Mapped[int] = models.Column(Integer, default=0)
+    question_id: Mapped[int] = mapped_column(Integer, ForeignKey("question.id"))
+    choice_text: Mapped[str]
+    votes: Mapped[int] = mapped_column(Integer, default=0)

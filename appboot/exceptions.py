@@ -12,3 +12,7 @@ class DatabaseError(Error):
 
 class DoesNotExist(DatabaseError):
     pass
+
+
+class NotSupportedError(DatabaseError):
+    pass

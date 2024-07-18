@@ -5,11 +5,14 @@ from typing import Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, declared_attr, mapped_column, with_loader_criteria
+from sqlalchemy.sql.base import ExecutableOption
 
+from appboot.db import Base
 from appboot.interfaces import BaseRepository
+from appboot.repository import Repository
+from appboot.utils import camel_to_snake
 
-Column = mapped_column
 ModelT = TypeVar("ModelT", bound="Model")
 SchemaT = TypeVar("SchemaT", bound="BaseModelSchema")
 if sys.version_info >= (3, 11):
@@ -18,29 +21,37 @@ else:
     Self = typing.Annotated[ModelT, "Self"]
 
 
-class Model(DeclarativeBase):
-    # repository_class: typing.ClassVar[typing.Optional[type[BaseRepository]]]
-    objects: typing.ClassVar[BaseRepository[Self]]
+class TableNameMixin:
+    @declared_attr.directive  # noqa
+    @classmethod
+    def __tablename__(cls) -> Optional[str]:
+        return camel_to_snake(cls.__name__)
 
-    id: Mapped[int] = Column(primary_key=True)
-    created_at: Mapped[datetime] = Column(default=func.now())
-    updated_at: Mapped[datetime] = Column(default=func.now(), onupdate=func.now())
-    deleted_at: Mapped[Optional[datetime]] = Column(default=None)
 
-    def __init_subclass__(cls, **kwargs: dict[str, typing.Any]):
-        from appboot.repository import Repository
-
-        super().__init_subclass__(**kwargs)
-        cls.objects = Repository()
-
-    def delete(self) -> None:
-        if self.deleted_at is None:
-            self.deleted_at: datetime = datetime.now()
+class TimestampMixin:
+    created_at: Mapped[datetime] = mapped_column(default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        default=func.now(), onupdate=func.now()
+    )
 
 
 class OperatorMixin:
-    create_by: Mapped[int] = Column(default=0)
-    update_by: Mapped[int] = Column(default=0)
+    create_by: Mapped[int] = mapped_column(default=0)
+    update_by: Mapped[int] = mapped_column(default=0)
+
+
+class DeletedAtMixin:
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(default=None)
+
+    @declared_attr.directive  # noqa
+    @classmethod
+    def __deleted_at_option__(cls) -> typing.Optional[ExecutableOption]:
+        return with_loader_criteria(cls, cls.deleted_at.is_(None))
+
+
+class Model(TableNameMixin, Base):
+    __abstract__ = True
+    objects: typing.ClassVar[BaseRepository[Self]] = Repository()
 
 
 class BaseModelSchema(BaseModel):
