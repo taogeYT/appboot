@@ -3,16 +3,14 @@ import typing
 from typing import Generic, Optional, Sequence
 
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 from sqlalchemy.ext.asyncio.session import AsyncSession
-from sqlalchemy.orm import with_loader_criteria
 
-from appboot.db import ScopedSession
+from appboot.db import Base, ScopedSession
 from appboot.exceptions import DoesNotExist
 from appboot.interfaces import BaseRepository
-from appboot.models import ModelT
 
-RepositoryT = typing.TypeVar("RepositoryT", bound="Repository")
+ModelT = typing.TypeVar("ModelT", bound=Base)
 
 
 class _Query(BaseModel):
@@ -22,6 +20,12 @@ class _Query(BaseModel):
     limit: int = 10000
     offset: int = 0
     option_alive: bool = True
+    with_options: tuple[typing.Any, ...] = ()
+
+    def get_options(self):
+        if self.option_alive:
+            return self.with_options
+        return ()
 
 
 class Repository(BaseRepository[ModelT], Generic[ModelT]):
@@ -30,17 +34,22 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         if self._model is None:
             self._query = _Query(order_by=None)
         else:
-            self._query = _Query(order_by=self.model.id.desc())
+            mapper = inspect(model)
+            if mapper is None or not mapper.is_mapper:
+                raise ValueError("Expected mapped class or mapper, got: %r" % model)
+            self._query = _Query(order_by=mapper.primary_key)
+            if self.model.__deleted_at_option__:
+                self.options(self.model.__deleted_at_option__)
 
     def __get__(self, instance, cls):
         if instance is None:
             return self.__class__(cls)
-        raise AttributeError("instance is not yet assigned")
+        raise ValueError("Repository cannot be accessed through instance")
 
     @property
     def model(self) -> type[ModelT]:
         if self._model is None:
-            raise AttributeError("model is not set")
+            raise ValueError("Model is not set")
         return self._model
 
     @property
@@ -50,10 +59,6 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
     def disable_option(self):
         self._query.option_alive = False
         return self
-
-    def get_option(self):
-        _deleted_at_condition = self.model.deleted_at.is_(None)
-        return with_loader_criteria(self.model, _deleted_at_condition)
 
     def filter(self, *condition):
         self._query.where.extend(condition)
@@ -76,18 +81,25 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         self._query.limit = end - start
         return self
 
+    def options(self, *args):
+        self._query.with_options += args
+        return self
+
+    def order_by(self, *args):
+        self._query.order_by = args
+        return self
+
     def get_query(self):
         stmt = select(self.model)
         if self._query.kw_where:
             stmt = stmt.filter_by(**self._query.kw_where)
         if self._query.where:
             stmt = stmt.where(*self._query.where)
-        if self._query.option_alive:
-            stmt = stmt.options(self.get_option())
+        stmt = stmt.options(*self._query.get_options())
         stmt = (
             stmt.limit(self._query.limit)
             .offset(self._query.offset)
-            .order_by(self._query.order_by)
+            .order_by(*self._query.order_by)
         )
         return stmt
 
@@ -101,15 +113,11 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         obj = await self.session.scalar(stmt)
         return obj
 
-    async def get(self, pk: int) -> ModelT:
-        obj = await self.filter_by(id=pk).first()
+    async def get(self, pk: typing.Any) -> ModelT:
+        obj = await self.session.get(self.model, pk, options=self._query.get_options())
         if not obj:
             raise DoesNotExist(f"{self.model.__name__}.{pk}")
         return obj
-
-    async def mget(self, pks: list[int]) -> dict[int, ModelT]:
-        objs = await self.filter(self.model.id.in_(pks)).all()
-        return {obj.id: obj for obj in objs}
 
     async def bulk_create(self, objs: list[BaseModel], flush=False) -> list[ModelT]:
         instances = [self.model(**obj.dict(exclude_defaults=True)) for obj in objs]
@@ -127,7 +135,7 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
 
     async def update(self, pk: int, obj: BaseModel, flush=False) -> ModelT:
         instance = await self.get(pk)
-        for name, value in obj.dict(exclude={"id", "created_at", "updated_at"}).items():
+        for name, value in obj.dict(exclude={"id"}).items():
             if hasattr(instance, name) and getattr(instance, name) != value:
                 setattr(instance, name, value)
         if flush:
@@ -136,7 +144,10 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
 
     async def delete(self, pk: int, flush=False) -> ModelT:
         instance = await self.get(pk)
-        instance.deleted_at = datetime.datetime.now()
+        if self.model.__deleted_at_option__ and hasattr(instance, "deleted_at"):
+            instance.deleted_at = datetime.datetime.now()
+        else:
+            await self.session.delete(instance)
         if flush:
             await self.session.flush()
         return instance
