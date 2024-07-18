@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from appboot import models
 
 
-class Question(models.Model):
+class Question(models.TimestampMixin, models.Model):
     question_text: Mapped[str]
     pub_date: Mapped[datetime]
 

@@ -42,12 +42,12 @@ def _parse_bases_fields(bases):
 
 
 def _parse_field_from_sqlalchemy_model(
-    model, include=None, exclude=None, write_only_fields=None
+    model, include=None, exclude=None, read_only_fields=None
 ):
     __dict__ = {}
     __annotations__ = {}
     _exclude = set() if exclude is None else set(exclude)
-    _write_only_fields = set() if write_only_fields is None else set(write_only_fields)
+    _read_only_fields = set() if read_only_fields is None else set(read_only_fields)
     mapper = inspect(model)
     for attr in mapper.attrs:
         if isinstance(attr, ColumnProperty):
@@ -56,23 +56,16 @@ def _parse_field_from_sqlalchemy_model(
                 continue
             if column_property.name in _exclude:
                 continue
-            if column_property.nullable:
+            if column_property.nullable or column_property.name in _read_only_fields:
                 python_type = typing.Optional[column_property.type.python_type]
                 default = None
             else:
                 python_type = column_property.type.python_type
                 default = ...
             __annotations__[column_property.name] = python_type
-            if column_property.name in _write_only_fields:
-                __dict__[column_property.name] = Field(
-                    default,
-                    title=column_property.doc or column_property.name,
-                    exclude=True,
-                )
-            else:
-                __dict__[column_property.name] = Field(
-                    default, title=column_property.doc or column_property.name
-                )
+            __dict__[column_property.name] = Field(
+                default, title=column_property.doc or column_property.name
+            )
     return __dict__, __annotations__
 
 
@@ -92,10 +85,11 @@ class ModelSchemaMetaclass(PydanticModelMetaclass):
         namespace["Meta"] = type("Meta", (BaseMeta,), dict(meta.__dict__))
         include_fields = getattr(meta, "fields", None)
         exclude_fields = set(getattr(meta, "exclude", set()))
+        read_only_fields = getattr(meta, "read_only_fields", None)
         exclude_fields.add("deleted_at")
         exclude_fields.update(_parse_bases_fields(bases))
         __dict__, __annotations__ = _parse_field_from_sqlalchemy_model(
-            meta.model, include_fields, exclude_fields, None
+            meta.model, include_fields, exclude_fields, read_only_fields
         )
         __dict__.update(namespace)
         if "__annotations__" in namespace:
@@ -166,28 +160,3 @@ class BaseMeta:
 
 class ModelSchema(Schema, metaclass=ModelSchemaMetaclass):
     Meta: typing.ClassVar[type[BaseMeta]]
-
-    # def dict(self,
-    #          *,
-    #          include: IncEx = None,
-    #          exclude: IncEx = None,
-    #          by_alias: bool = False,
-    #          exclude_unset: bool = False,
-    #          exclude_defaults: bool = False,
-    #          exclude_none: bool = False
-    #          ) -> dict[str, typing.Any]:
-    #     read_only_fields: typing.Iterable[str] = tuple(self.Meta.read_only_fields) + ('id',)
-    #     if not exclude:
-    #         exclude = set()
-    #     if isinstance(exclude, set):
-    #         typing.cast(set[str], exclude).update(read_only_fields)
-    #     if isinstance(exclude, dict):
-    #         typing.cast(dict[str, typing.Any], exclude).update({f: True for f in read_only_fields})
-    #     return super().dict(
-    #         include=include,
-    #         exclude=exclude,
-    #         by_alias=by_alias,
-    #         exclude_unset=exclude_unset,
-    #         exclude_defaults=exclude_defaults,
-    #         exclude_none=exclude_none,
-    #     )
