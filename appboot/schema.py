@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import typing
 from typing import Any
 
@@ -7,7 +9,7 @@ from sqlalchemy.orm import ColumnProperty
 from typing_extensions import Self
 
 from appboot._compat import PYDANTIC_V2, PydanticModelMetaclass
-from appboot.db import Base
+from appboot.models import Model
 
 ModelSchemaT = typing.TypeVar("ModelSchemaT", bound="ModelSchema")
 IncEx = typing.Union[
@@ -152,7 +154,7 @@ class Schema(BaseModel):
 
 
 class BaseMeta:
-    model: type[Base] = Base
+    model: type[Model]
     fields: typing.Sequence[str] = ()
     exclude: typing.Sequence[str] = ()
     read_only_fields: typing.Sequence[str] = ()  # pk is read only by default

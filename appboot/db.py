@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import contextlib
 import typing
@@ -8,8 +10,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
-from sqlalchemy.sql.base import ExecutableOption
+from sqlalchemy.orm import DeclarativeBase
 
 from appboot import settings
 
@@ -27,12 +28,7 @@ ScopedSession = async_scoped_session(
 
 
 class Base(DeclarativeBase):
-    id: Mapped[int] = mapped_column(primary_key=True)
-
-    @declared_attr.directive  # noqa
-    @classmethod
-    def __deleted_at_option__(cls) -> typing.Optional[ExecutableOption]:
-        return None
+    pass
 
 
 @contextlib.asynccontextmanager
