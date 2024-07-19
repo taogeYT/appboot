@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import typing
 from datetime import datetime
 from typing import Optional, TypeVar
@@ -45,4 +47,10 @@ class DeletedAtMixin:
 
 class Model(TableNameMixin, Base):
     __abstract__ = True
+    id: Mapped[int] = mapped_column(primary_key=True)
     objects: typing.ClassVar[BaseRepository[Self]] = Repository()
+
+    @declared_attr.directive  # noqa
+    @classmethod
+    def __deleted_at_option__(cls) -> typing.Optional[ExecutableOption]:
+        return None

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import typing
 from typing import Any, Generic, Optional, Sequence
@@ -6,12 +8,15 @@ from pydantic import BaseModel, Field
 from sqlalchemy import Column, inspect, select
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
-from appboot.db import Base, ScopedSession
+from appboot.db import ScopedSession
 from appboot.exceptions import DoesNotExist
 from appboot.interfaces import BaseRepository
-from appboot.schema import ModelSchema
 
-ModelT = typing.TypeVar("ModelT", bound=Base)
+if typing.TYPE_CHECKING:
+    from appboot.models import Model  # noqa
+    from appboot.schema import ModelSchema
+
+ModelT = typing.TypeVar("ModelT", bound="Model")
 
 
 class _Query(BaseModel):

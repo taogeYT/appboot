@@ -1,6 +1,16 @@
-from typing import Optional, Protocol, Sequence, TypeVar, runtime_checkable
+from __future__ import annotations
 
-from appboot.schema import ModelSchema
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Protocol,
+    Sequence,
+    TypeVar,
+    runtime_checkable,
+)
+
+if TYPE_CHECKING:
+    from appboot.schema import ModelSchema
 
 T = TypeVar("T")
 
