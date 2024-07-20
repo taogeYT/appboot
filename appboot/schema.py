@@ -110,6 +110,10 @@ class Schema(BaseModel):
             orm_mode = True
 
     @classmethod
+    def from_orm_many(cls, objs: typing.Sequence[Any]) -> list[Self]:
+        return [cls.from_orm(obj) for obj in objs]
+
+    @classmethod
     def parse_obj(cls, obj: Any) -> Self:  # noqa: D102
         if PYDANTIC_V2:
             return cls.model_validate(obj)
