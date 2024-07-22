@@ -21,6 +21,7 @@ source env/bin/activate  # On Windows use `env\Scripts\activate`
 # Set up a new project with a single application
 appboot startproject mysite .  # Note the trailing '.' character
 
+pip install aiosqlite  # for default db engine
 # start runserver Application running on http://127.0.0.1:8000
 python3 manage.py runserver
 ```
