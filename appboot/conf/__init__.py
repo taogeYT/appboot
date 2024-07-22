@@ -45,4 +45,16 @@ class Settings(DefaultSettings, metaclass=BaseSettingsMetaclass):
         settings_module = os.environ.get(ENVIRONMENT_VARIABLE)
 
 
-settings = Settings()
+class LazySettings:
+    def __init__(self):
+        self._wrapped = None
+
+    def __getattr__(self, name):
+        if self._wrapped is None:
+            self._wrapped = Settings()
+        val = getattr(self._wrapped, name)
+        self.__dict__[name] = val
+        return val
+
+
+settings = LazySettings()

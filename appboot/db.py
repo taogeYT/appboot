@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase
 
-from appboot import settings
+from appboot.conf import settings
 
 default_config = settings.DATABASES.default
 

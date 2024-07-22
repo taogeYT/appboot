@@ -4,7 +4,7 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 
-from appboot import settings
+from appboot.conf import settings
 from appboot.db import transaction
 from appboot.exceptions import Error
 
