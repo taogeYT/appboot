@@ -16,32 +16,46 @@ def get_template_path(template_name):
     return os.path.join(appboot.__path__[0], "conf", template_name)
 
 
-def create_project(project_name: str):
+def ensure_target_dir(name, target):
+    # if some directory is given, make sure it's nicely expanded
+    if not target:
+        top_dir = os.path.join(os.getcwd(), name)
+        try:
+            os.makedirs(top_dir)
+        except FileExistsError:
+            typer.echo(f"'{top_dir}' already exists")
+            raise typer.Exit()
+        except OSError as e:
+            typer.echo(f"OSError: {e}")
+            raise typer.Exit()
+    else:
+        top_dir = os.path.abspath(os.path.expanduser(target))
+        if not os.path.exists(top_dir):
+            typer.echo(
+                f"Destination directory '{top_dir}' does not exist, please create it first."
+            )
+            raise typer.Exit()
+    return top_dir
+
+
+def create_project(project_name: str, target_dir: str):
     template_dir = get_template_path("project_template")
-    target_dir = project_name
+    # target_dir = project_name
     kwargs = {"project_name": project_name}
-
-    if os.path.exists(target_dir):
-        typer.echo(f"Error: Directory {target_dir} already exists.")
-        raise typer.Exit()
-
-    shutil.copytree(template_dir, target_dir)
+    target_dir = ensure_target_dir(project_name, target_dir)
+    print(template_dir, target_dir)
+    shutil.copytree(template_dir, target_dir, dirs_exist_ok=True)
     render_templates("project", target_dir, project_name, kwargs)
     typer.echo(f"Project {project_name} created successfully.")
 
 
-def create_app(app_name: str, project_dir: str):
+def create_app(app_name: str, target: str):
     template_dir = get_template_path("app_template")
-    target_dir = os.path.join(project_dir, app_name)
     kwargs = {"app_name": app_name, "camel_case_app_name": snake_to_pascal(app_name)}
-
-    if os.path.exists(target_dir):
-        typer.echo(f"Error: Directory {target_dir} already exists.")
-        raise typer.Exit()
-
-    shutil.copytree(template_dir, target_dir)
+    target_dir = ensure_target_dir(app_name, target)
+    shutil.copytree(template_dir, target_dir, dirs_exist_ok=True)
     render_templates("app", target_dir, app_name, kwargs)
-    typer.echo(f"App {app_name} created successfully in {project_dir}.")
+    typer.echo(f"App {app_name} created successfully.")
 
 
 def render_templates(
@@ -71,22 +85,28 @@ def render_templates(
 
 
 @app.command()
-def startproject(project_name: str):
+def startproject(
+    name: str = typer.Argument(..., help="Name of the project."),
+    directory: str = typer.Argument("", help="Optional destination directory"),
+):
     """
     Create a new project with the specified name.
     """
-    create_project(project_name)
+    create_project(name, directory)
 
 
 @app.command()
-def startapp(app_name: str, project_dir: str = "."):
+def startapp(
+    name: str = typer.Argument(..., help="Name of the application."),
+    directory: str = typer.Argument("", help="Optional destination directory"),
+):
     """
     Create a new app with the specified name in the given project directory.
     """
-    create_app(app_name, project_dir)
+    create_app(name, directory)
 
 
 @app.command()
-def runserver():
-    app = get_asgi_application()
-    uvicorn.run(app)
+def runserver(host: str = "127.0.0.1", port: int = 8000):
+    asgi = get_asgi_application()
+    uvicorn.run(asgi, host=host, port=port)
