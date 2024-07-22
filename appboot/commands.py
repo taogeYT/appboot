@@ -7,7 +7,7 @@ from jinja2 import Environment, FileSystemLoader
 
 import appboot
 from appboot.asgi import get_asgi_application
-from appboot.utils import snake_to_pascal
+from appboot.utils import get_random_secret_key, snake_to_pascal
 
 app = typer.Typer()
 
@@ -41,7 +41,7 @@ def ensure_target_dir(name, target):
 def create_project(project_name: str, target_dir: str):
     template_dir = get_template_path("project_template")
     # target_dir = project_name
-    kwargs = {"project_name": project_name}
+    kwargs = {"project_name": project_name, "secret_key": get_random_secret_key()}
     target_dir = ensure_target_dir(project_name, target_dir)
     print(template_dir, target_dir)
     shutil.copytree(template_dir, target_dir, dirs_exist_ok=True)

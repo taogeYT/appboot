@@ -1,4 +1,5 @@
 import re
+import secrets
 import typing
 
 from pydantic import BaseModel
@@ -38,3 +39,10 @@ def camel_to_snake(name: str) -> str:
     """
     s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+
+
+def get_random_secret_key():
+    """
+    Return a 50 character random string usable as a SECRET_KEY setting value.
+    """
+    return secrets.token_hex(32)
