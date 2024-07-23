@@ -1,10 +1,10 @@
-# appboot
-App Boot is a FastAPI project template, Designed to provide a Django-like structure and development experience.
+# App Boot
+App Boot a FastAPI project template, Designed to provide a Django-like structure and development experience.
 
 # Installation
 Require Python 3.9+
 ```shell
-pip install appboot
+pip3 install appboot
 ```
 
 # Quick start
@@ -18,10 +18,12 @@ cd mysite
 python3 -m venv env
 source env/bin/activate  # On Windows use `env\Scripts\activate`
 
+# Install appboot and aiosqlite into the virtual environment
+pip3 install appboot aiosqlite
+
 # Set up a new project with a single application
 appboot startproject mysite .  # Note the trailing '.' character
 
-pip install aiosqlite  # for default db engine
 # start runserver Application running on http://127.0.0.1:8000
 python3 manage.py runserver
 ```
