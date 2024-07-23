@@ -1,5 +1,5 @@
 # Register your schema here.
-from appboot import ModelSchema
+from appboot.schema import ModelSchema
 from polls.models import Choice, Question
 
 

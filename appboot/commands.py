@@ -6,7 +6,7 @@ import uvicorn
 from jinja2 import Environment, FileSystemLoader
 
 import appboot
-from appboot.asgi import get_asgi_application
+from appboot.conf import settings
 from appboot.utils import get_random_secret_key, snake_to_pascal
 
 app = typer.Typer()
@@ -107,6 +107,6 @@ def startapp(
 
 
 @app.command()
-def runserver(host: str = "127.0.0.1", port: int = 8000):
-    asgi = get_asgi_application()
-    uvicorn.run(asgi, host=host, port=port)
+def runserver(host: str = "127.0.0.1", port: int = 8000, reload: bool = False):
+    asgi = f"{settings.PROJECT_NAME}.asgi:application"
+    uvicorn.run(asgi, host=host, port=port, reload=reload)

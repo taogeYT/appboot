@@ -30,7 +30,6 @@ def get_fastapi_application():
         allow_methods=settings.ALLOW_METHODS,
         allow_headers=settings.ALLOW_HEADERS,
     )
-    fastapi_register_exception(app)
     fastapi_register_routers(app)
     return app
 
