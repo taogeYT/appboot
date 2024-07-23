@@ -6,7 +6,7 @@ from polls.models import Choice, Question
 class QuestionSchema(ModelSchema):
     class Meta:
         model = Question
-        read_only_fields = ("id", "created_at", "updated_at")
+        read_only_fields = ('id', 'created_at', 'updated_at')
 
 
 class ChoiceSchema(ModelSchema):

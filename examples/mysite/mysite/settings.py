@@ -11,7 +11,7 @@ from appboot.conf.default import DataBases, EngineConfig
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 
-PROJECT_NAME: str = "mysite"
+PROJECT_NAME: str = 'mysite'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG: bool = True
@@ -20,10 +20,10 @@ ALLOWED_HOSTS: list[str] = []
 ALLOW_METHODS: list[str] = []
 ALLOW_HEADERS: list[str] = []
 
-ROOT_URLCONF: str = "mysite.urls"
+ROOT_URLCONF: str = 'mysite.urls'
 
 
 # Database
 DATABASES: DataBases = DataBases(
-    default=EngineConfig(url=f"sqlite+aiosqlite:///{BASE_DIR}/db.sqlite3")
+    default=EngineConfig(url=f'sqlite+aiosqlite:///{BASE_DIR}/db.sqlite3')
 )

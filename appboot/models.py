@@ -14,7 +14,7 @@ from appboot.interfaces import BaseRepository
 from appboot.repository import Repository
 from appboot.utils import camel_to_snake
 
-ModelT = TypeVar("ModelT", bound="Model")
+ModelT = TypeVar('ModelT', bound='Model')
 
 
 class TableNameMixin:

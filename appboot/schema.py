@@ -11,7 +11,7 @@ from typing_extensions import Self
 from appboot._compat import PYDANTIC_V2, PydanticModelMetaclass
 from appboot.models import Model
 
-ModelSchemaT = typing.TypeVar("ModelSchemaT", bound="ModelSchema")
+ModelSchemaT = typing.TypeVar('ModelSchemaT', bound='ModelSchema')
 IncEx = typing.Union[
     set[int], set[str], dict[int, typing.Any], dict[str, typing.Any], None
 ]
@@ -32,13 +32,13 @@ def clone_model(
 
 
 def get_meta_config(meta):
-    type("Meta", (BaseMeta,), meta.__dict__)
+    type('Meta', (BaseMeta,), meta.__dict__)
 
 
 def _parse_bases_fields(bases):
     base_fields = set()
     for base in bases:
-        if hasattr(base, "__fields__"):
+        if hasattr(base, '__fields__'):
             base_fields.update(base.__fields__)
     return base_fields
 
@@ -79,24 +79,24 @@ class ModelSchemaMetaclass(PydanticModelMetaclass):
         namespace: dict[str, typing.Any],
         **kwargs: typing.Any,
     ) -> type:
-        if cls_name == "ModelSchema":
+        if cls_name == 'ModelSchema':
             return super().__new__(mcs, cls_name, bases, namespace, **kwargs)
-        meta = namespace.get("Meta")
+        meta = namespace.get('Meta')
         if meta is None:
             raise ValueError("'Meta' is required for ModelSchema")
-        namespace["Meta"] = type("Meta", (BaseMeta,), dict(meta.__dict__))
-        include_fields = getattr(meta, "fields", None)
-        exclude_fields = set(getattr(meta, "exclude", set()))
-        read_only_fields = getattr(meta, "read_only_fields", None)
-        exclude_fields.add("deleted_at")
+        namespace['Meta'] = type('Meta', (BaseMeta,), dict(meta.__dict__))
+        include_fields = getattr(meta, 'fields', None)
+        exclude_fields = set(getattr(meta, 'exclude', set()))
+        read_only_fields = getattr(meta, 'read_only_fields', None)
+        exclude_fields.add('deleted_at')
         exclude_fields.update(_parse_bases_fields(bases))
         __dict__, __annotations__ = _parse_field_from_sqlalchemy_model(
             meta.model, include_fields, exclude_fields, read_only_fields
         )
         __dict__.update(namespace)
-        if "__annotations__" in namespace:
-            __annotations__.update(namespace["__annotations__"])
-        __dict__["__annotations__"] = __annotations__
+        if '__annotations__' in namespace:
+            __annotations__.update(namespace['__annotations__'])
+        __dict__['__annotations__'] = __annotations__
         new_cls = super().__new__(mcs, cls_name, bases, __dict__, **kwargs)
         return new_cls
 

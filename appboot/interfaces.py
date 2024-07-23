@@ -12,7 +12,7 @@ from typing import (
 if TYPE_CHECKING:
     from appboot.schema import ModelSchema
 
-T = TypeVar("T")
+T = TypeVar('T')
 
 
 @runtime_checkable

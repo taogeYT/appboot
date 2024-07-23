@@ -8,6 +8,6 @@ import os
 
 from appboot.asgi import get_asgi_application
 
-os.environ.setdefault("APP_BOOT_SETTINGS_MODULE", "mysite.settings")
+os.environ.setdefault('APP_BOOT_SETTINGS_MODULE', 'mysite.settings')
 
 application = get_asgi_application()
