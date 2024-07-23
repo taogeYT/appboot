@@ -1,16 +1,9 @@
 # Create your api here.
 from fastapi import APIRouter, Depends
 
-from appboot.db import engine
-from appboot.models import Model
+from appboot.db import create_tables
 from polls.models import Question
 from polls.schema import QuestionSchema
-
-
-async def create_tables():
-    async with engine.begin() as conn:
-        await conn.run_sync(Model.metadata.create_all)
-
 
 router = APIRouter(
     prefix='/polls', tags=['polls'], dependencies=[Depends(create_tables)]
