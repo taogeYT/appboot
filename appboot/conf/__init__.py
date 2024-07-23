@@ -18,6 +18,12 @@ def _parse_field_from_mod(mod, attrs):
 
 
 class BaseSettingsMetaclass(PydanticModelMetaclass):
+    """
+    class Settings(DefaultSettings, metaclass=BaseSettingsMetaclass):
+        class Meta:
+            settings_module = os.environ.get(ENVIRONMENT_VARIABLE)
+    """
+
     def __new__(
         mcs,
         cls_name: str,
@@ -43,16 +49,14 @@ class LazySettings:
 
     def __getattr__(self, name):
         if self._wrapped is None:
-
-            class Settings(DefaultSettings, metaclass=BaseSettingsMetaclass):
-                """
-                os.environ.setdefault('APP_BOOT_SETTINGS_MODULE', 'myapp.settings')
-                """
-
-                class Meta:
-                    settings_module = os.environ.get(ENVIRONMENT_VARIABLE)
-
-            self._wrapped = Settings()
+            settings_module = os.environ.get(ENVIRONMENT_VARIABLE)
+            namespace = {}
+            if not settings_module:
+                raise ValueError('settings_module not configured')
+            mod = importlib.import_module(settings_module)
+            _parse_field_from_mod(mod, namespace)
+            settings_class = type('Settings', (DefaultSettings,), namespace)
+            self._wrapped = settings_class()
         val = getattr(self._wrapped, name)
         self.__dict__[name] = val
         return val
