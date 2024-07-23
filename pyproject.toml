@@ -41,6 +41,9 @@ ignore = ["E501"]
 [tool.ruff.lint.isort]
 known-third-party = ["fastapi", "pydantic", "sqlalchemy"]
 
+[tool.ruff.format]
+quote-style = "single"
+
 
 [tool.mypy]
 python_version = "3.9"

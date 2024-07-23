@@ -16,7 +16,7 @@ if typing.TYPE_CHECKING:
     from appboot.models import Model  # noqa
     from appboot.schema import ModelSchema
 
-ModelT = typing.TypeVar("ModelT", bound="Model")
+ModelT = typing.TypeVar('ModelT', bound='Model')
 
 
 class _Query(BaseModel):
@@ -43,7 +43,7 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         else:
             mapper = inspect(model)
             if mapper is None or not mapper.is_mapper:
-                raise ValueError("Expected mapped class or mapper, got: %r" % model)
+                raise ValueError('Expected mapped class or mapper, got: %r' % model)
             self._primary_key = mapper.primary_key
             self._query = _Query(order_by=mapper.primary_key)
             if self.model.__deleted_at_option__:
@@ -52,12 +52,12 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
     def __get__(self, instance, cls):
         if instance is None:
             return self.__class__(cls)
-        raise ValueError("Repository cannot be accessed through instance")
+        raise ValueError('Repository cannot be accessed through instance')
 
     @property
     def model(self) -> type[ModelT]:
         if self._model is None:
-            raise ValueError("Model is not set")
+            raise ValueError('Model is not set')
         return self._model
 
     @property
@@ -128,7 +128,7 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
     async def get(self, pk: typing.Any) -> ModelT:
         obj = await self.session.get(self.model, pk, options=self._query.get_options())
         if not obj:
-            raise DoesNotExist(f"{self.model.__name__}.{pk} DoesNotExist")
+            raise DoesNotExist(f'{self.model.__name__}.{pk} DoesNotExist')
         return obj
 
     def _model_dump_for_write(self, obj: ModelSchema) -> dict[str, Any]:
@@ -162,7 +162,7 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
 
     async def delete(self, pk: int, flush=False) -> ModelT:
         instance = await self.get(pk)
-        if self.model.__deleted_at_option__ and hasattr(instance, "deleted_at"):
+        if self.model.__deleted_at_option__ and hasattr(instance, 'deleted_at'):
             instance.deleted_at = datetime.datetime.now()
         else:
             await self.session.delete(instance)

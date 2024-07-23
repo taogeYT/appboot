@@ -19,7 +19,7 @@ default_config = settings.DATABASES.default
 engine = create_async_engine(
     url=str(default_config.url),
     future=True,
-    **default_config.dict(exclude={"url"}, exclude_defaults=True),
+    **default_config.dict(exclude={'url'}, exclude_defaults=True),
 )
 
 ScopedSession = async_scoped_session(
