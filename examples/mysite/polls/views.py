@@ -1,8 +1,8 @@
 # Create your api here.
 from fastapi import APIRouter, Depends
 
-from appboot import Model
 from appboot.db import engine
+from appboot.models import Model
 from polls.models import Question
 from polls.schema import QuestionSchema
 

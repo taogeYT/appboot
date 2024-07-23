@@ -1,5 +1,5 @@
-from appboot.apps import AppConfig
+from appboot.apps import AppConfig as AppConfigBase
 
 
-class {{ camel_case_app_name }}Config(AppConfig):
+class {{ camel_case_app_name }}Config(AppConfigBase):
     name: str = '{{ app_name }}'
