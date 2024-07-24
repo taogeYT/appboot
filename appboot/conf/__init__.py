@@ -3,8 +3,8 @@ import os
 import typing
 import warnings
 
-from appboot._compat import PydanticModelMetaclass
 from appboot.conf.default import DefaultSettings
+from appboot.conf.pydantic_settings import ModelMetaclass
 
 ENVIRONMENT_VARIABLE = 'APP_BOOT_SETTINGS_MODULE'
 
@@ -17,7 +17,7 @@ def _parse_field_from_mod(mod, attrs):
         attrs['__annotations__'] = mod.__annotations__
 
 
-class BaseSettingsMetaclass(PydanticModelMetaclass):
+class BaseSettingsMetaclass(ModelMetaclass):
     """
     class Settings(DefaultSettings, metaclass=BaseSettingsMetaclass):
         class Meta:

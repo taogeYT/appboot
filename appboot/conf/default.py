@@ -1,9 +1,14 @@
 import typing
 
-from appboot._compat import BaseModelV1, BaseSettingsV1
+from appboot.conf.pydantic_settings import (
+    PYDANTIC_SETTINGS_V2,
+    BaseModel,
+    BaseSettings,
+    SettingsConfigDict,
+)
 
 
-class EngineConfig(BaseModelV1):
+class EngineConfig(BaseModel):
     url: str
     pool_size: int = 5
     max_overflow: int = 10
@@ -11,17 +16,25 @@ class EngineConfig(BaseModelV1):
     echo: bool = True
 
 
-class DataBases(BaseModelV1):
+class DataBases(BaseModel):
     default: EngineConfig
 
 
-class FastAPIConfig(BaseModelV1):
+class FastAPIConfig(BaseModel):
     root_path: str = ''
     docs_url: typing.Optional[str] = '/docs'
     redoc_url: typing.Optional[str] = '/redoc'
 
 
-class DefaultSettings(BaseSettingsV1):
+class DefaultSettings(BaseSettings):
+    if PYDANTIC_SETTINGS_V2:
+        model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
+    else:
+
+        class Config:
+            env_file = '.env'
+            env_file_encoding = 'utf-8'
+
     PROJECT_NAME: str = ''
     DATABASES: DataBases = DataBases(
         default=EngineConfig(url='sqlite+aiosqlite:///:memory:')
