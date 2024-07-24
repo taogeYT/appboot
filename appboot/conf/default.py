@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import typing
 
 from appboot.conf.pydantic_settings import (
     PYDANTIC_SETTINGS_V2,
     BaseModel,
     BaseSettings,
-    SettingsConfigDict,
 )
 
 
@@ -28,6 +29,8 @@ class FastAPIConfig(BaseModel):
 
 class DefaultSettings(BaseSettings):
     if PYDANTIC_SETTINGS_V2:
+        from pydantic_settings import SettingsConfigDict
+
         model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
     else:
 
