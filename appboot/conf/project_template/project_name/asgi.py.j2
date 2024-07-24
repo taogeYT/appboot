@@ -14,6 +14,6 @@ application = get_asgi_application()
 fastapi_register_exception(application)
 
 
-@application.get("/ping", summary="Ping Health Check")
+@application.get("/ping", summary="Health Check")
 async def ping() -> dict[str, str]:
     return {"data": "pong"}
