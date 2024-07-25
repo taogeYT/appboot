@@ -19,11 +19,11 @@ default_config = settings.DATABASES.default
 engine = create_async_engine(
     url=str(default_config.url),
     future=True,
-    **default_config.dict(exclude={'url'}, exclude_defaults=True),
+    **default_config.dict(exclude={'url'}, exclude_unset=True),
 )
 
 ScopedSession = async_scoped_session(
-    async_sessionmaker(engine), scopefunc=asyncio.current_task
+    async_sessionmaker(engine, expire_on_commit=False), scopefunc=asyncio.current_task
 )
 
 
