@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, create_model
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import inspect
 from sqlalchemy.orm import ColumnProperty
 from typing_extensions import Self
@@ -15,24 +15,6 @@ ModelSchemaT = typing.TypeVar('ModelSchemaT', bound='ModelSchema')
 IncEx = typing.Union[
     set[int], set[str], dict[int, typing.Any], dict[str, typing.Any], None
 ]
-
-
-def clone_model(
-    name: str, base: type[BaseModel], exclude_fields: set[str]
-) -> type[BaseModel]:
-    original_fields: dict[str, typing.Any] = base.model_fields
-    new_fields: dict[str, typing.Any] = {
-        name: (field.annotation, field.default)
-        for name, field in original_fields.items()
-        if name not in exclude_fields
-    }
-
-    new_model = create_model(name, __config__=base.model_config, **new_fields)
-    return new_model
-
-
-def get_meta_config(meta):
-    type('Meta', (BaseMeta,), meta.__dict__)
 
 
 def _parse_bases_fields(bases):
@@ -79,11 +61,9 @@ class ModelSchemaMetaclass(PydanticModelMetaclass):
         namespace: dict[str, typing.Any],
         **kwargs: typing.Any,
     ) -> type:
-        if cls_name == 'ModelSchema':
-            return super().__new__(mcs, cls_name, bases, namespace, **kwargs)
         meta = namespace.get('Meta')
-        if meta is None:
-            raise ValueError("'Meta' is required for ModelSchema")
+        if meta is None or cls_name == 'ModelSchema':
+            return super().__new__(mcs, cls_name, bases, namespace, **kwargs)
         namespace['Meta'] = type('Meta', (BaseMeta,), dict(meta.__dict__))
         include_fields = getattr(meta, 'fields', None)
         exclude_fields = set(getattr(meta, 'exclude', set()))
