@@ -32,8 +32,11 @@ class DefaultSettings(BaseSettings):
         from pydantic_settings import SettingsConfigDict
 
         model_config = SettingsConfigDict(
-            env_file='.env', env_file_encoding='utf-8', env_nested_delimiter='__'
+            env_file='.env',
+            env_file_encoding='utf-8',
+            env_nested_delimiter='__',
         )
+        del SettingsConfigDict
     else:
 
         class Config:
