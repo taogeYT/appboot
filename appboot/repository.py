@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 import typing
 from typing import Any, Generic, Optional, Sequence
 
@@ -8,6 +7,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import Column, inspect, select
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
+from appboot import timezone
 from appboot.db import ScopedSession
 from appboot.exceptions import DoesNotExist
 from appboot.interfaces import BaseRepository
@@ -141,14 +141,15 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         instances = [self.model(**self._model_dump_for_write(obj)) for obj in objs]
         self.session.add_all(instances)
         if flush:
-            await self.session.flush()
+            await self.session.flush(instances)
         return instances
 
     async def create(self, obj: ModelSchema, flush=False) -> ModelT:
         instance = self.model(**self._model_dump_for_write(obj))
         self.session.add(instance)
         if flush:
-            await self.session.flush()
+            await self.session.flush([instance])
+            await self.session.refresh(instance)
         return instance
 
     async def update(self, pk: int, obj: ModelSchema, flush=False) -> ModelT:
@@ -157,15 +158,15 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
             if hasattr(instance, name) and getattr(instance, name) != value:
                 setattr(instance, name, value)
         if flush:
-            await self.session.flush()
+            await self.session.flush([instance])
         return instance
 
     async def delete(self, pk: int, flush=False) -> ModelT:
         instance = await self.get(pk)
         if self.model.__deleted_at_option__ and hasattr(instance, 'deleted_at'):
-            instance.deleted_at = datetime.datetime.now()
+            instance.deleted_at = timezone.now()
         else:
             await self.session.delete(instance)
         if flush:
-            await self.session.flush()
+            await self.session.flush([instance])
         return instance

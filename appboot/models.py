@@ -4,7 +4,7 @@ import typing
 from datetime import datetime
 from typing import Optional, TypeVar
 
-from sqlalchemy import func
+from sqlalchemy import DateTime, func
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column, with_loader_criteria
 from sqlalchemy.sql.base import ExecutableOption
 from typing_extensions import Self
@@ -25,9 +25,11 @@ class TableNameMixin:
 
 
 class TimestampMixin:
-    created_at: Mapped[datetime] = mapped_column(default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=func.now()
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        default=func.now(), onupdate=func.now()
+        DateTime(timezone=True), default=func.now(), onupdate=func.now()
     )
 
 
@@ -37,7 +39,9 @@ class OperatorMixin:
 
 
 class DeletedAtMixin:
-    deleted_at: Mapped[Optional[datetime]] = mapped_column(default=None)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
 
     @declared_attr.directive  # noqa
     @classmethod
