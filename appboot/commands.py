@@ -1,5 +1,7 @@
 import os
 import shutil
+import sys
+import traceback
 
 import typer
 import uvicorn
@@ -10,6 +12,49 @@ from appboot.conf import settings
 from appboot.utils import get_random_secret_key, snake_to_pascal
 
 app = typer.Typer()
+
+
+def start_ipython():
+    from IPython import start_ipython
+
+    start_ipython(argv=[])
+
+
+def start_python():
+    import code
+
+    imported_objects = {}
+    # By default, this will set up readline to do tab completion and to read and
+    # write history to the .python_history file, but this can be overridden by
+    # $PYTHONSTARTUP or ~/.pythonrc.py.
+    try:
+        hook = sys.__interactivehook__
+    except AttributeError:
+        # Match the behavior of the cpython shell where a missing
+        # sys.__interactivehook__ is ignored.
+        pass
+    else:
+        try:
+            hook()
+        except Exception:
+            # Match the behavior of the cpython shell where an error in
+            # sys.__interactivehook__ prints a warning and the exception
+            # and continues.
+            print('Failed calling sys.__interactivehook__')
+            traceback.print_exc()
+
+    # Set up tab completion for objects imported by $PYTHONSTARTUP or
+    # ~/.pythonrc.py.
+    try:
+        import readline
+        import rlcompleter
+
+        readline.set_completer(rlcompleter.Completer(imported_objects).complete)
+    except ImportError:
+        pass
+
+    # Start the interactive interpreter.
+    code.interact(local=imported_objects)
 
 
 def get_template_path(template_name):
@@ -110,3 +155,12 @@ def startapp(
 def runserver(host: str = '127.0.0.1', port: int = 8000, reload: bool = False):
     asgi = f'{settings.PROJECT_NAME}.asgi:application'
     uvicorn.run(asgi, host=host, port=port, reload=reload)
+
+
+@app.command()
+def shell():
+    for python_shell in [start_ipython, start_python]:
+        try:
+            return python_shell()
+        except ImportError:
+            pass
