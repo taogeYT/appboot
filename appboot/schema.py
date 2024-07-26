@@ -83,11 +83,12 @@ class ModelSchemaMetaclass(PydanticModelMetaclass):
 
 class Schema(BaseModel):
     if PYDANTIC_V2:
-        model_config = ConfigDict(from_attributes=True)
+        model_config = ConfigDict(from_attributes=True, populate_by_name=True)
     else:
 
         class Config:
             orm_mode = True
+            allow_population_by_field_name = True
 
     @classmethod
     def from_orm_many(cls, objs: typing.Sequence[Any]) -> list[Self]:
