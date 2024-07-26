@@ -101,6 +101,27 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         self._query.order_by = args
         return self
 
+    def _clone(self):
+        r = self.__class__(self.model)
+        r._query = self._query
+        return r
+
+    def all(self):
+        return self._clone()
+
+    async def _fetch_all(self) -> Sequence[ModelT]:
+        stmt = self.get_query()
+        result = await self.session.scalars(stmt)
+        return result.all()
+
+    def __aiter__(self):
+        async def generator():
+            result = await self._fetch_all()
+            for item in result:
+                yield item
+
+        return generator()
+
     def get_query(self):
         stmt = select(self.model)
         if self._query.kw_where:
@@ -115,10 +136,8 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         )
         return stmt
 
-    async def all(self) -> Sequence[ModelT]:
-        stmt = self.get_query()
-        result = await self.session.scalars(stmt)
-        return result.all()
+    async def get_all(self) -> Sequence[ModelT]:
+        return await self._fetch_all()
 
     async def first(self) -> Optional[ModelT]:
         stmt = self.get_query()
