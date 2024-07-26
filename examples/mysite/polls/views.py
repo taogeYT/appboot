@@ -2,8 +2,9 @@
 from fastapi import APIRouter, Depends
 
 from appboot.db import create_tables
+from appboot.filters import FilterDepends
 from polls.models import Question
-from polls.schema import QuestionSchema
+from polls.schema import QuestionFilterSchema, QuestionSchema
 
 router = APIRouter(
     prefix='/polls', tags=['polls'], dependencies=[Depends(create_tables)]
@@ -16,8 +17,9 @@ async def create_question(question: QuestionSchema):
 
 
 @router.get('/questions/', response_model=list[QuestionSchema])
-async def query_questions(limit: int = 10, offset: int = 0):
-    return await Question.objects.limit(limit).offset(offset).all()
+async def query_questions(query: QuestionFilterSchema = FilterDepends()):
+    question_query = Question.objects.all()
+    return await query.filter(question_query).get_all()
 
 
 @router.get('/questions/{question_id}', response_model=QuestionSchema)
