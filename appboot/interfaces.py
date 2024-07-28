@@ -47,6 +47,9 @@ class BaseRepository(Protocol[T]):
     def all(self):
         ...
 
+    async def count(self) -> int:
+        ...
+
     async def get_all(self) -> Sequence[T]:
         ...
 
