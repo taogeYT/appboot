@@ -7,7 +7,7 @@ from fastapi import Query
 from fastapi import params as fastapi_params
 from pydantic.fields import FieldInfo  # noqa
 
-from appboot._compat import get_schema_fields
+from appboot._compat import ModelField, get_schema_fields
 from appboot.filters import BaseFilter
 from appboot.pagination import PagePagination, PaginationResult
 from appboot.schema import Schema
@@ -16,13 +16,13 @@ if TYPE_CHECKING:
     from appboot.repository import Repository
 
 
-def construct_query_from_field(field: FieldInfo) -> fastapi_params:
+def construct_query_from_field(field: ModelField) -> fastapi_params:
     return Query(
-        field.default,
-        default_factory=field.default_factory,
-        description=field.description,
-        alias=field.alias,
-        title=field.title,
+        field.field_info.default,
+        default_factory=field.field_info.default_factory,
+        description=field.field_info.description,
+        alias=field.field_info.alias,
+        title=field.field_info.title,
     )
 
 
@@ -38,7 +38,7 @@ def get_query_dependency(schema_cls: type[Schema]):
                 name=field_name,
                 kind=Parameter.KEYWORD_ONLY,
                 default=construct_query_from_field(field),
-                annotation=field.annotation,  # todo compat v1
+                annotation=field.annotation,
             )
         )
 
