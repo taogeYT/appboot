@@ -44,13 +44,13 @@ class BaseRepository(Protocol[T]):
     def get_query(self):
         ...
 
-    def all(self):
+    def clone(self):
         ...
 
     async def count(self) -> int:
         ...
 
-    async def get_all(self) -> Sequence[T]:
+    async def all(self) -> Sequence[T]:
         ...
 
     async def first(self) -> Optional[T]:

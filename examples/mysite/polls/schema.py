@@ -1,15 +1,15 @@
 # Register your schema here.
 from typing import Optional
 
-from appboot.filters import ContainsField, Field, FilterSchema
+from appboot.filters import ContainsField, EqField
+from appboot.params import QuerySchema
 from appboot.schema import ModelSchema
 from polls.models import Choice, Question
 
 
-class QuestionFilterSchema(FilterSchema):
-    id: Optional[list[int]] = Field(None, alias='pk')
+class QuestionQuerySchema(QuerySchema):
+    ids: Optional[list[int]] = EqField(None, column_name='id')
     question_text: Optional[str] = ContainsField(None)
-    hello: str = ''
 
 
 class QuestionSchema(ModelSchema):
