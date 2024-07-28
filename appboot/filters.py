@@ -415,14 +415,15 @@ class BaseFilter(Schema):
         conditions = []
         model_fields = get_schema_fields(self)
         for name, field in model_fields.items():
+            field_info = field.field_info
             value = getattr(self, name)
             if value is None:
                 continue
-            if not isinstance(field, QueryFieldInfo):
+            if not isinstance(field_info, QueryFieldInfo):
                 continue
-            column_name = field.column_name or name
+            column_name = field_info.column_name or name
             if not hasattr(model, column_name):
                 raise FilterError(f'Model {model.__name__} has no column {column_name}')
-            condition = field.construct_condition(model, column_name, value)
+            condition = field_info.construct_condition(model, column_name, value)
             conditions.append(condition)
         return and_(*conditions)
