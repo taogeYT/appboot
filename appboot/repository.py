@@ -4,8 +4,9 @@ import typing
 from typing import Any, Generic, Optional, Sequence
 
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, inspect, select
+from sqlalchemy import Column, func, inspect, select
 from sqlalchemy.ext.asyncio.session import AsyncSession
+from sqlalchemy.orm import noload
 
 from appboot import timezone
 from appboot.db import ScopedSession
@@ -135,6 +136,15 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
             .order_by(*self._query.order_by)
         )
         return stmt
+
+    async def count(self) -> int:
+        stmt = (
+            self.get_query()
+            .order_by(None)
+            .options(noload('*'))
+            .with_only_columns(func.count(1))
+        )
+        return await self.session.scalar(stmt)
 
     async def get_all(self) -> Sequence[ModelT]:
         return await self._fetch_all()
