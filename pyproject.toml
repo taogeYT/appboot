@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "appboot"
 version = "0.1.6"
-description = "App Boot is a FastAPI project template, Designed to provide a Django-like structure and development experience."
+description = "Use FastAPI like Django"
 authors = ["liyatao <liyatao001@gmail.com>"]
 readme = "README.md"
 
