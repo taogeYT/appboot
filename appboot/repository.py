@@ -102,13 +102,10 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         self._query.order_by = args
         return self
 
-    def _clone(self):
+    def clone(self):
         r = self.__class__(self.model)
         r._query = self._query
         return r
-
-    def all(self):
-        return self._clone()
 
     async def _fetch_all(self) -> Sequence[ModelT]:
         stmt = self.get_query()
@@ -146,7 +143,7 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         )
         return await self.session.scalar(stmt)
 
-    async def get_all(self) -> Sequence[ModelT]:
+    async def all(self) -> Sequence[ModelT]:
         return await self._fetch_all()
 
     async def first(self) -> Optional[ModelT]:

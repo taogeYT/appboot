@@ -152,7 +152,7 @@ def startapp(
 
 
 @app.command()
-def runserver(host: str = '127.0.0.1', port: int = 8000, reload: bool = False):
+def runserver(host: str = '127.0.0.1', port: int = 8000, reload: bool = True):
     asgi = f'{settings.PROJECT_NAME}.asgi:application'
     uvicorn.run(asgi, host=host, port=port, reload=reload)
 

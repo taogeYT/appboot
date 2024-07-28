@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 import typing
-import warnings
-from inspect import Parameter, Signature
 from typing import Any, Callable, Iterable, Optional
 
-from fastapi import Query, params
 from pydantic.fields import FieldInfo  # noqa
 from sqlalchemy import and_
 
 from appboot._compat import PydanticUndefined, get_schema_fields
+from appboot.exceptions import FilterError
 from appboot.schema import Schema
 
 if typing.TYPE_CHECKING:
@@ -17,15 +15,13 @@ if typing.TYPE_CHECKING:
 
 
 __all__ = (
-    'Field',
     'EqField',
     'GeField',
     'GtField',
     'LeField',
     'LtField',
     'ContainsField',
-    'FilterSchema',
-    'FilterDepends',
+    'BaseFilter',
 )
 
 
@@ -35,17 +31,15 @@ def equal_construct_condition(model, name, value):
     return getattr(model, name) == value
 
 
-def construct_query_from_field(field: FieldInfo) -> params.Query:
-    return Query(
-        field.default,
-        default_factory=field.default_factory,
-        description=field.description,
-        alias=field.alias,
-        title=field.title,
-    )
-
-
 class QueryFieldInfo(FieldInfo):
+    @property
+    def column_name(self) -> Optional[str]:
+        return getattr(self, '_column_name', None)
+
+    @column_name.setter
+    def column_name(self, value):
+        setattr(self, '_column_name', value)
+
     def construct_condition(self, model, name, value):
         pass
 
@@ -55,48 +49,96 @@ class EqFieldInfo(QueryFieldInfo):
         return equal_construct_condition(model, name, value)
 
 
-def EqField(  # noqa
+def construct_field(
+    field_cls: type[QueryFieldInfo],
     default: Any = PydanticUndefined,
-    *,
     default_factory: Optional[Callable[[], Any]] = None,
     alias: Optional[str] = None,
+    alias_priority: Optional[int] = None,
     title: Optional[str] = None,
     description: Optional[str] = None,
+    exclude: Optional[Any] = None,
+    min_length: Optional[str] = None,
+    max_length: Optional[str] = None,
     gt: Optional[float] = None,
-    ge: Optional[float] = None,
     lt: Optional[float] = None,
+    ge: Optional[float] = None,
     le: Optional[float] = None,
     multiple_of: Optional[float] = None,
     allow_inf_nan: Optional[bool] = None,
     max_digits: Optional[int] = None,
     decimal_places: Optional[int] = None,
-    min_length: Optional[int] = None,
-    max_length: Optional[int] = None,
-    discriminator: Optional[str] = None,
+    column_name: Optional[str] = None,
     **kwargs: Any,
-) -> Any:
-    return EqFieldInfo(
+):
+    field = field_cls(
         default=default,
         default_factory=default_factory,
         alias=alias,
+        alias_priority=alias_priority,
         title=title,
         description=description,
-        gt=gt,
-        ge=ge,
-        lt=lt,
-        le=le,
+        exclude=exclude,
         min_length=min_length,
         max_length=max_length,
-        discriminator=discriminator,
+        gt=gt,
+        lt=lt,
+        ge=ge,
+        le=le,
         multiple_of=multiple_of,
         allow_inf_nan=allow_inf_nan,
         max_digits=max_digits,
         decimal_places=decimal_places,
         **kwargs,
     )
+    field.column_name = column_name
+    return field
 
 
-Field = EqField
+def EqField(  # noqa
+    default: Optional[Any] = None,
+    *,
+    default_factory: Optional[Callable[[], Any]] = None,
+    alias: Optional[str] = None,
+    alias_priority: Optional[int] = None,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    exclude: Optional[Any] = None,
+    min_length: Optional[str] = None,
+    max_length: Optional[str] = None,
+    gt: Optional[float] = None,
+    lt: Optional[float] = None,
+    ge: Optional[float] = None,
+    le: Optional[float] = None,
+    multiple_of: Optional[float] = None,
+    allow_inf_nan: Optional[bool] = None,
+    max_digits: Optional[int] = None,
+    decimal_places: Optional[int] = None,
+    column_name: Optional[str] = None,
+    **kwargs: Any,
+) -> Any:
+    return construct_field(
+        field_cls=EqFieldInfo,
+        default=default,
+        default_factory=default_factory,
+        alias=alias,
+        alias_priority=alias_priority,
+        title=title,
+        description=description,
+        exclude=exclude,
+        gt=gt,
+        ge=ge,
+        lt=lt,
+        le=le,
+        min_length=min_length,
+        max_length=max_length,
+        multiple_of=multiple_of,
+        allow_inf_nan=allow_inf_nan,
+        max_digits=max_digits,
+        decimal_places=decimal_places,
+        column_name=column_name,
+        **kwargs,
+    )
 
 
 class GtFieldInfo(QueryFieldInfo):
@@ -105,42 +147,47 @@ class GtFieldInfo(QueryFieldInfo):
 
 
 def GtField(  # noqa
-    default: Any = PydanticUndefined,
+    default: Optional[Any] = None,
     *,
     default_factory: Optional[Callable[[], Any]] = None,
     alias: Optional[str] = None,
+    alias_priority: Optional[int] = None,
     title: Optional[str] = None,
     description: Optional[str] = None,
+    exclude: Optional[Any] = None,
+    min_length: Optional[str] = None,
+    max_length: Optional[str] = None,
     gt: Optional[float] = None,
-    ge: Optional[float] = None,
     lt: Optional[float] = None,
+    ge: Optional[float] = None,
     le: Optional[float] = None,
     multiple_of: Optional[float] = None,
     allow_inf_nan: Optional[bool] = None,
     max_digits: Optional[int] = None,
     decimal_places: Optional[int] = None,
-    min_length: Optional[int] = None,
-    max_length: Optional[int] = None,
-    discriminator: Optional[str] = None,
+    column_name: Optional[str] = None,
     **kwargs: Any,
 ) -> Any:
-    return GtFieldInfo(
+    return construct_field(
+        field_cls=GtFieldInfo,
         default=default,
         default_factory=default_factory,
         alias=alias,
+        alias_priority=alias_priority,
         title=title,
         description=description,
+        exclude=exclude,
         gt=gt,
         ge=ge,
         lt=lt,
         le=le,
         min_length=min_length,
         max_length=max_length,
-        discriminator=discriminator,
         multiple_of=multiple_of,
         allow_inf_nan=allow_inf_nan,
         max_digits=max_digits,
         decimal_places=decimal_places,
+        column_name=column_name,
         **kwargs,
     )
 
@@ -151,42 +198,47 @@ class GeFieldInfo(QueryFieldInfo):
 
 
 def GeField(  # noqa
-    default: Any = PydanticUndefined,
+    default: Optional[Any] = None,
     *,
     default_factory: Optional[Callable[[], Any]] = None,
     alias: Optional[str] = None,
+    alias_priority: Optional[int] = None,
     title: Optional[str] = None,
     description: Optional[str] = None,
+    exclude: Optional[Any] = None,
+    min_length: Optional[str] = None,
+    max_length: Optional[str] = None,
     gt: Optional[float] = None,
-    ge: Optional[float] = None,
     lt: Optional[float] = None,
+    ge: Optional[float] = None,
     le: Optional[float] = None,
     multiple_of: Optional[float] = None,
     allow_inf_nan: Optional[bool] = None,
     max_digits: Optional[int] = None,
     decimal_places: Optional[int] = None,
-    min_length: Optional[int] = None,
-    max_length: Optional[int] = None,
-    discriminator: Optional[str] = None,
+    column_name: Optional[str] = None,
     **kwargs: Any,
 ) -> Any:
-    return GeFieldInfo(
+    return construct_field(
+        field_cls=GeFieldInfo,
         default=default,
         default_factory=default_factory,
         alias=alias,
+        alias_priority=alias_priority,
         title=title,
         description=description,
+        exclude=exclude,
         gt=gt,
         ge=ge,
         lt=lt,
         le=le,
         min_length=min_length,
         max_length=max_length,
-        discriminator=discriminator,
         multiple_of=multiple_of,
         allow_inf_nan=allow_inf_nan,
         max_digits=max_digits,
         decimal_places=decimal_places,
+        column_name=column_name,
         **kwargs,
     )
 
@@ -197,42 +249,47 @@ class LtFieldInfo(QueryFieldInfo):
 
 
 def LtField(  # noqa
-    default: Any = PydanticUndefined,
+    default: Optional[Any] = None,
     *,
     default_factory: Optional[Callable[[], Any]] = None,
     alias: Optional[str] = None,
+    alias_priority: Optional[int] = None,
     title: Optional[str] = None,
     description: Optional[str] = None,
+    exclude: Optional[Any] = None,
+    min_length: Optional[str] = None,
+    max_length: Optional[str] = None,
     gt: Optional[float] = None,
-    ge: Optional[float] = None,
     lt: Optional[float] = None,
+    ge: Optional[float] = None,
     le: Optional[float] = None,
     multiple_of: Optional[float] = None,
     allow_inf_nan: Optional[bool] = None,
     max_digits: Optional[int] = None,
     decimal_places: Optional[int] = None,
-    min_length: Optional[int] = None,
-    max_length: Optional[int] = None,
-    discriminator: Optional[str] = None,
+    column_name: Optional[str] = None,
     **kwargs: Any,
 ) -> Any:
-    return LtFieldInfo(
+    return construct_field(
+        field_cls=LtFieldInfo,
         default=default,
         default_factory=default_factory,
         alias=alias,
+        alias_priority=alias_priority,
         title=title,
         description=description,
+        exclude=exclude,
         gt=gt,
         ge=ge,
         lt=lt,
         le=le,
         min_length=min_length,
         max_length=max_length,
-        discriminator=discriminator,
         multiple_of=multiple_of,
         allow_inf_nan=allow_inf_nan,
         max_digits=max_digits,
         decimal_places=decimal_places,
+        column_name=column_name,
         **kwargs,
     )
 
@@ -243,42 +300,47 @@ class LeFieldInfo(QueryFieldInfo):
 
 
 def LeField(  # noqa
-    default: Any = PydanticUndefined,
+    default: Optional[Any] = None,
     *,
     default_factory: Optional[Callable[[], Any]] = None,
     alias: Optional[str] = None,
+    alias_priority: Optional[int] = None,
     title: Optional[str] = None,
     description: Optional[str] = None,
+    exclude: Optional[Any] = None,
+    min_length: Optional[str] = None,
+    max_length: Optional[str] = None,
     gt: Optional[float] = None,
-    ge: Optional[float] = None,
     lt: Optional[float] = None,
+    ge: Optional[float] = None,
     le: Optional[float] = None,
     multiple_of: Optional[float] = None,
     allow_inf_nan: Optional[bool] = None,
     max_digits: Optional[int] = None,
     decimal_places: Optional[int] = None,
-    min_length: Optional[int] = None,
-    max_length: Optional[int] = None,
-    discriminator: Optional[str] = None,
+    column_name: Optional[str] = None,
     **kwargs: Any,
 ) -> Any:
-    return LeFieldInfo(
+    return construct_field(
+        field_cls=LeFieldInfo,
         default=default,
         default_factory=default_factory,
         alias=alias,
+        alias_priority=alias_priority,
         title=title,
         description=description,
+        exclude=exclude,
         gt=gt,
         ge=ge,
         lt=lt,
         le=le,
         min_length=min_length,
         max_length=max_length,
-        discriminator=discriminator,
         multiple_of=multiple_of,
         allow_inf_nan=allow_inf_nan,
         max_digits=max_digits,
         decimal_places=decimal_places,
+        column_name=column_name,
         **kwargs,
     )
 
@@ -289,42 +351,47 @@ class ContainsFieldInfo(QueryFieldInfo):
 
 
 def ContainsField(  # noqa
-    default: Any = PydanticUndefined,
+    default: Optional[Any] = None,
     *,
     default_factory: Optional[Callable[[], Any]] = None,
     alias: Optional[str] = None,
+    alias_priority: Optional[int] = None,
     title: Optional[str] = None,
     description: Optional[str] = None,
+    exclude: Optional[Any] = None,
+    min_length: Optional[str] = None,
+    max_length: Optional[str] = None,
     gt: Optional[float] = None,
-    ge: Optional[float] = None,
     lt: Optional[float] = None,
+    ge: Optional[float] = None,
     le: Optional[float] = None,
     multiple_of: Optional[float] = None,
     allow_inf_nan: Optional[bool] = None,
     max_digits: Optional[int] = None,
     decimal_places: Optional[int] = None,
-    min_length: Optional[int] = None,
-    max_length: Optional[int] = None,
-    discriminator: Optional[str] = None,
+    column_name: Optional[str] = None,
     **kwargs: Any,
 ) -> Any:
-    return ContainsFieldInfo(
+    return construct_field(
+        field_cls=ContainsFieldInfo,
         default=default,
         default_factory=default_factory,
         alias=alias,
+        alias_priority=alias_priority,
         title=title,
         description=description,
+        exclude=exclude,
         gt=gt,
         ge=ge,
         lt=lt,
         le=le,
         min_length=min_length,
         max_length=max_length,
-        discriminator=discriminator,
         multiple_of=multiple_of,
         allow_inf_nan=allow_inf_nan,
         max_digits=max_digits,
         decimal_places=decimal_places,
+        column_name=column_name,
         **kwargs,
     )
 
@@ -339,69 +406,23 @@ class OrderingFieldInfo(QueryFieldInfo):
         raise NotImplementedError
 
 
-class FilterSchema(Schema):
-    def filter(self, repository: Repository):
-        conditions = self.construct_expression(repository.model)
+class BaseFilter(Schema):
+    def filter_repository(self, repository: Repository) -> Repository:
+        conditions = self.get_condition(repository.model)
         return repository.filter(conditions)
 
-    def construct_expression(self, model):
+    def get_condition(self, model):
         conditions = []
         model_fields = get_schema_fields(self)
         for name, field in model_fields.items():
             value = getattr(self, name)
             if value is None:
                 continue
-            if not hasattr(model, name):
-                warnings.warn(
-                    f'{self.__class__.__name__}.{name} not found in [{model.__name__}] Model'
-                )
+            if not isinstance(field, QueryFieldInfo):
                 continue
-            if isinstance(field, FieldInfo):
-                condition = equal_construct_condition(model, name, value)
-            elif isinstance(field, QueryFieldInfo):
-                condition = field.construct_condition(model, name, value)
-            else:
-                raise NotImplementedError
-            print(condition, name, value)
+            column_name = field.column_name or name
+            if not hasattr(model, column_name):
+                raise FilterError(f'Model {model.__name__} has no column {column_name}')
+            condition = field.construct_condition(model, column_name, value)
             conditions.append(condition)
         return and_(*conditions)
-
-
-def get_filter_dependency(filter_schema_cls: type[FilterSchema]):
-    # Create a dictionary to store the Query parameters
-    query_params: list[Parameter] = []
-
-    # Iterate over the fields of the Pydantic model
-    for field_name, field in get_schema_fields(filter_schema_cls).items():
-        # Use the field default value or None if not provided
-        query_params.append(
-            Parameter(
-                name=field_name,
-                kind=Parameter.KEYWORD_ONLY,
-                default=construct_query_from_field(field),
-                annotation=field.annotation,  # todo compat v1
-            )
-        )
-
-    # Define the dependency function
-    def dependency_func(**kwargs):
-        return filter_schema_cls(**kwargs)
-
-    # Create a new signature for the dependency function
-    dependency_func.__name__ = filter_schema_cls.__name__
-    dependency_func.__signature__ = Signature(parameters=query_params)  # type: ignore
-    return dependency_func
-
-
-class _FilterDepends(params.Depends):
-    def __setattr__(self, name: str, value: Any) -> None:
-        if name == 'dependency' and value:
-            if issubclass(value, FilterSchema):
-                value = get_filter_dependency(value)
-        super().__setattr__(name, value)
-
-
-def FilterDepends(  # noqa
-    dependency: Optional[Callable[..., Any]] = None, *, use_cache: bool = True
-) -> Any:
-    return _FilterDepends(dependency, use_cache=use_cache)

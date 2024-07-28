@@ -37,11 +37,11 @@ def get_fastapi_application():
 def fastapi_register_exception(app: FastAPI):
     @app.exception_handler(Error)
     async def app_error_handler(request: Request, exc: Error):
-        return JSONResponse({'code': 400, 'message': str(exc)}, status_code=400)
+        return JSONResponse({'detail': str(exc)}, status_code=400)
 
     @app.exception_handler(Exception)
     async def app_exception_handler(request: Request, exc: Exception):
-        return JSONResponse({'code': 500, 'message': str(exc)}, status_code=500)
+        return JSONResponse({'detail': str(exc)}, status_code=500)
 
 
 def fastapi_register_routers(app: FastAPI):
