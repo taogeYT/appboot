@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "appboot"
-version = "0.1.6"
+version = "0.1.7"
 description = "Use FastAPI like Django"
 authors = ["liyatao <liyatao001@gmail.com>"]
 readme = "README.md"
