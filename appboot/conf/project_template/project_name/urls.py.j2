@@ -2,9 +2,12 @@
 API Router configuration for {{ project_name }} project.
 
 Examples:
-    from app import router1, router2
-    routers = [router1, router2]
+    from fastapi import APIRouter
+    from app import views
+
+    root_router = APIRouter()
+    root_router.include_router(views.router, tags=["demo"])
 """
 from fastapi import APIRouter
 
-routers: list[APIRouter] = []
+root_router = APIRouter()

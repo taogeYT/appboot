@@ -46,5 +46,4 @@ def fastapi_register_exception(app: FastAPI):
 
 def fastapi_register_routers(app: FastAPI):
     mod = importlib.import_module(settings.ROOT_URLCONF)
-    for r in mod.routers:
-        app.include_router(r)
+    app.include_router(mod.root_router)
