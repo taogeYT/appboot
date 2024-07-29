@@ -4,9 +4,10 @@ import typing
 from typing import Any, Generic, Optional, Sequence
 
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, func, inspect, select
+from sqlalchemy import Column, inspect
 from sqlalchemy.ext.asyncio.session import AsyncSession
-from sqlalchemy.orm import noload
+from sqlalchemy.orm import Query
+from sqlalchemy.util import greenlet_spawn
 
 from appboot import timezone
 from appboot.db import ScopedSession
@@ -18,6 +19,41 @@ if typing.TYPE_CHECKING:
     from appboot.schema import ModelSchema
 
 ModelT = typing.TypeVar('ModelT', bound='Model')
+
+
+class AsyncQuery(Query):
+    async def async_count(self) -> int:
+        return await greenlet_spawn(super().count)
+
+    async def async_all(self):
+        return await greenlet_spawn(super().all)
+
+    async def async_first(self):
+        return await greenlet_spawn(super().first)
+
+    async def async_one_or_none(self):
+        return await greenlet_spawn(super().one_or_none)
+
+    async def async_one(self):
+        return await greenlet_spawn(super().one)
+
+    async def async_delete(self, synchronize_session='auto'):
+        return await greenlet_spawn(
+            super().delete, synchronize_session=synchronize_session
+        )
+
+    async def async_update(
+        self,
+        values: dict[str, Any],
+        synchronize_session='auto',
+        update_args: Optional[dict[Any, Any]] = None,
+    ):
+        return await greenlet_spawn(
+            super().update,
+            values=values,
+            synchronize_session=synchronize_session,
+            update_args=update_args,
+        )
 
 
 class _Query(BaseModel):
@@ -39,14 +75,13 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
     def __init__(self, model: Optional[type[ModelT]] = None):
         self._model = model
         self._primary_key = ()
-        if self._model is None:
-            self._query = _Query(order_by=None)
-        else:
+        if self._model is not None:
             mapper = inspect(model)
             if mapper is None or not mapper.is_mapper:
                 raise ValueError('Expected mapped class or mapper, got: %r' % model)
             self._primary_key = mapper.primary_key
-            self._query = _Query(order_by=mapper.primary_key)
+            # self._query = _Query(order_by=mapper.primary_key)
+            self._query = AsyncQuery(self.model, self.session.sync_session)
             if self.model.__deleted_at_option__:
                 self.options(self.model.__deleted_at_option__)
 
@@ -69,37 +104,73 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
     def session(self) -> AsyncSession:
         return ScopedSession()
 
-    def disable_option(self):
-        self._query.option_alive = False
-        return self
-
     def filter(self, *condition):
-        self._query.where.extend(condition)
+        self._query = self._query.filter(*condition)
         return self
 
     def filter_by(self, **kwargs):
-        self._query.kw_where.update(kwargs)
+        self._query = self._query.filter_by(**kwargs)
         return self
 
     def limit(self, num: int):
-        self._query.limit = num
+        self._query = self._query.limit(num)
         return self
 
     def offset(self, num: int):
-        self._query.offset = num
+        self._query = self._query.offset(num)
         return self
 
     def slice(self, start: int, end: int):
-        self._query.offset = start
-        self._query.limit = end - start
+        self._query = self._query.slice(start, end)
         return self
 
     def options(self, *args):
-        self._query.with_options += args
+        self._query = self._query.options(*args)
         return self
 
     def order_by(self, *args):
-        self._query.order_by = args
+        self._query = self._query.order_by(*args)
+        return self
+
+    def group_by(self, __first, *clauses):
+        self._query = self._query.group_by(__first, *clauses)
+        return self
+
+    def having(self, *having):
+        self._query = self._query.having(*having)
+        return self
+
+    def join(
+        self,
+        target: Any,
+        onclause: Optional[Any] = None,
+        *,
+        isouter: bool = False,
+        full: bool = False,
+    ):
+        self._query = self._query.join(target, onclause, isouter=isouter, full=full)
+        return self
+
+    def with_for_update(
+        self,
+        *,
+        nowait: bool = False,
+        read: bool = False,
+        of: Optional[Any] = None,
+        skip_locked: bool = False,
+        key_share: bool = False,
+    ):
+        self._query = self._query.with_for_update(
+            nowait=nowait,
+            read=read,
+            of=of,
+            skip_locked=skip_locked,
+            key_share=key_share,
+        )
+        return self
+
+    def with_entities(self, *entities: Any, **__kw: Any):
+        self._query = self._query.with_entities(*entities, **__kw)
         return self
 
     def clone(self):
@@ -108,9 +179,7 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         return r
 
     async def _fetch_all(self) -> Sequence[ModelT]:
-        stmt = self.get_query()
-        result = await self.session.scalars(stmt)
-        return result.all()
+        return await self._query.async_all()
 
     def __aiter__(self):
         async def generator():
@@ -120,44 +189,33 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
 
         return generator()
 
-    def get_query(self):
-        stmt = select(self.model)
-        if self._query.kw_where:
-            stmt = stmt.filter_by(**self._query.kw_where)
-        if self._query.where:
-            stmt = stmt.where(*self._query.where)
-        stmt = stmt.options(*self._query.get_options())
-        stmt = (
-            stmt.limit(self._query.limit)
-            .offset(self._query.offset)
-            .order_by(*self._query.order_by)
-        )
-        return stmt
+    @property
+    def statement(self):
+        return self._query.statement
 
     async def count(self) -> int:
-        stmt = (
-            self.get_query()
-            .order_by(None)
-            .options(noload('*'))
-            .with_only_columns(func.count(1))
-        )
-        return await self.session.scalar(stmt)
+        return await self._query.async_count()
 
     async def all(self) -> Sequence[ModelT]:
         return await self._fetch_all()
 
     async def first(self) -> Optional[ModelT]:
-        stmt = self.get_query()
-        obj = await self.session.scalar(stmt)
+        obj = await self.session.scalar(self.statement)
         return obj
 
     async def get(self, pk: typing.Any) -> ModelT:
-        obj = await self.session.get(self.model, pk, options=self._query.get_options())
+        obj = await self.session.get(
+            self.model, pk, options=tuple(self._query._with_options) or None
+        )
         if not obj:
             raise DoesNotExist(f'{self.model.__name__}.{pk} DoesNotExist')
         return obj
 
-    def _model_dump_for_write(self, obj: ModelSchema) -> dict[str, Any]:
+    def _model_dump_for_write(
+        self, obj: ModelSchema | dict[str, Any]
+    ) -> dict[str, Any]:
+        if isinstance(obj, dict):
+            return obj
         read_only_fields = set(obj.Meta.read_only_fields) | set(
             c.name for c in self.primary_key
         )
@@ -170,7 +228,7 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
             await self.session.flush(instances)
         return instances
 
-    async def create(self, obj: ModelSchema, flush=False) -> ModelT:
+    async def create(self, obj: ModelSchema | dict[str, Any], flush=False) -> ModelT:
         instance = self.model(**self._model_dump_for_write(obj))
         self.session.add(instance)
         if flush:
@@ -178,7 +236,13 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
             await self.session.refresh(instance)
         return instance
 
-    async def update(self, pk: int, obj: ModelSchema, flush=False) -> ModelT:
+    async def update(self, values: dict[str, Any]) -> int:
+        rowcount = await self._query.async_update(values)
+        return rowcount
+
+    async def update_one(
+        self, pk: int, obj: ModelSchema | dict[str, Any], flush=False
+    ) -> ModelT:
         instance = await self.get(pk)
         for name, value in self._model_dump_for_write(obj).items():
             if hasattr(instance, name) and getattr(instance, name) != value:
@@ -187,7 +251,7 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
             await self.session.flush([instance])
         return instance
 
-    async def delete(self, pk: int, flush=False) -> ModelT:
+    async def delete_one(self, pk: int, flush=False) -> ModelT:
         instance = await self.get(pk)
         if self.model.__deleted_at_option__ and hasattr(instance, 'deleted_at'):
             instance.deleted_at = timezone.now()

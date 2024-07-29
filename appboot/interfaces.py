@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Optional,
     Protocol,
     Sequence,
@@ -17,9 +18,6 @@ T = TypeVar('T')
 
 @runtime_checkable
 class BaseRepository(Protocol[T]):
-    def disable_option(self):
-        ...
-
     def filter(self, *condition):
         ...
 
@@ -41,7 +39,38 @@ class BaseRepository(Protocol[T]):
     def order_by(self, *args):
         ...
 
-    def get_query(self):
+    def group_by(self, __first, *clauses):
+        ...
+
+    def having(self, *having):
+        ...
+
+    def join(
+        self,
+        target: Any,
+        onclause: Optional[Any] = None,
+        *,
+        isouter: bool = False,
+        full: bool = False,
+    ):
+        ...
+
+    def with_for_update(
+        self,
+        *,
+        nowait: bool = False,
+        read: bool = False,
+        of: Optional[Any] = None,
+        skip_locked: bool = False,
+        key_share: bool = False,
+    ):
+        ...
+
+    def with_entities(self, *entities: Any, **__kw: Any):
+        ...
+
+    @property
+    def statement(self):
         ...
 
     def clone(self):
@@ -65,8 +94,11 @@ class BaseRepository(Protocol[T]):
     async def create(self, obj: ModelSchema, flush=False) -> T:
         ...
 
-    async def update(self, pk: int, obj: ModelSchema, flush=False) -> T:
+    async def update(self, values: dict[str, Any]) -> int:
         ...
 
-    async def delete(self, pk: int, flush=False) -> T:
+    async def update_one(self, pk: int, obj: ModelSchema, flush=False) -> T:
+        ...
+
+    async def delete_one(self, pk: int, flush=False) -> T:
         ...
