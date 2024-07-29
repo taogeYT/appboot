@@ -28,9 +28,9 @@ async def get_question(question_id: int):
 
 @router.put('/questions/{question_id}', response_model=QuestionSchema)
 async def update_question(question_id: int, question: QuestionSchema):
-    return await Question.objects.update(question_id, question)
+    return await Question.objects.update_one(question_id, question)
 
 
 @router.delete('/questions/{question_id}', response_model=QuestionSchema)
 async def delete_question(question_id: int):
-    return await Question.objects.delete(question_id, flush=True)
+    return await Question.objects.delete_one(question_id, flush=True)
