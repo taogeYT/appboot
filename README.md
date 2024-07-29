@@ -100,7 +100,7 @@ Testing our API
 python3 manage.py runserver
 ```
 We can now access our API directly through the browser, by going to the URL http://127.0.0.1:8000/docs/...
-![](https://raw.githubusercontent.com/taogeYT/appboot/v0.1.7/images/polls.png)
+![](https://raw.githubusercontent.com/taogeYT/appboot/main/images/polls.png)
 
 Create QuestionQuerySchema for complex query question in polls/schema.py.
 ```python3
@@ -113,7 +113,7 @@ class QuestionQuerySchema(QuerySchema):
     question_text: Optional[str] = ContainsField(None)  # fuzzy query question_text
 ```
 Replace QuerySchema with QuestionQuerySchema in the file polls/views.py, refresh docs in browser, You will see two new query param in query questions api
-![](https://raw.githubusercontent.com/taogeYT/appboot/v0.1.7/images/query.png)
+![](https://raw.githubusercontent.com/taogeYT/appboot/main/images/query.png)
 
 # Try out examples
 Go to [Examples](./examples)
