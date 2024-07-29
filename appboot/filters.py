@@ -33,20 +33,20 @@ def equal_construct_condition(model, name, value):
 
 class QueryFieldInfo(FieldInfo):
     @property
-    def column_name(self) -> Optional[str]:
-        return getattr(self, '_column_name', None)
+    def columns(self) -> Optional[typing.Iterable[str]]:
+        return getattr(self, '_columns', None)
 
-    @column_name.setter
-    def column_name(self, value):
-        setattr(self, '_column_name', value)
+    @columns.setter
+    def columns(self, value):
+        setattr(self, '_columns', value)
 
-    def construct_condition(self, model, name, value):
+    def construct_condition(self, model, names, value):
         pass
 
 
 class EqFieldInfo(QueryFieldInfo):
-    def construct_condition(self, model, name, value):
-        return equal_construct_condition(model, name, value)
+    def construct_condition(self, model, names, value):
+        return equal_construct_condition(model, names[0], value)
 
 
 def construct_field(
@@ -58,8 +58,8 @@ def construct_field(
     title: Optional[str] = None,
     description: Optional[str] = None,
     exclude: Optional[Any] = None,
-    min_length: Optional[str] = None,
-    max_length: Optional[str] = None,
+    min_length: Optional[int] = None,
+    max_length: Optional[int] = None,
     gt: Optional[float] = None,
     lt: Optional[float] = None,
     ge: Optional[float] = None,
@@ -68,7 +68,7 @@ def construct_field(
     allow_inf_nan: Optional[bool] = None,
     max_digits: Optional[int] = None,
     decimal_places: Optional[int] = None,
-    column_name: Optional[str] = None,
+    columns: Optional[str | typing.Sequence[str]] = None,
     **kwargs: Any,
 ):
     field = field_cls(
@@ -91,7 +91,7 @@ def construct_field(
         decimal_places=decimal_places,
         **kwargs,
     )
-    field.column_name = column_name
+    field.columns = [columns] if isinstance(columns, str) else columns
     return field
 
 
@@ -104,8 +104,8 @@ def EqField(  # noqa
     title: Optional[str] = None,
     description: Optional[str] = None,
     exclude: Optional[Any] = None,
-    min_length: Optional[str] = None,
-    max_length: Optional[str] = None,
+    min_length: Optional[int] = None,
+    max_length: Optional[int] = None,
     gt: Optional[float] = None,
     lt: Optional[float] = None,
     ge: Optional[float] = None,
@@ -114,7 +114,7 @@ def EqField(  # noqa
     allow_inf_nan: Optional[bool] = None,
     max_digits: Optional[int] = None,
     decimal_places: Optional[int] = None,
-    column_name: Optional[str] = None,
+    columns: Optional[str | typing.Sequence[str]] = None,
     **kwargs: Any,
 ) -> Any:
     return construct_field(
@@ -136,14 +136,14 @@ def EqField(  # noqa
         allow_inf_nan=allow_inf_nan,
         max_digits=max_digits,
         decimal_places=decimal_places,
-        column_name=column_name,
+        columns=columns,
         **kwargs,
     )
 
 
 class GtFieldInfo(QueryFieldInfo):
-    def construct_condition(self, model, name, value):
-        return getattr(model, name) > value
+    def construct_condition(self, model, names, value):
+        return getattr(model, names[0]) > value
 
 
 def GtField(  # noqa
@@ -155,8 +155,8 @@ def GtField(  # noqa
     title: Optional[str] = None,
     description: Optional[str] = None,
     exclude: Optional[Any] = None,
-    min_length: Optional[str] = None,
-    max_length: Optional[str] = None,
+    min_length: Optional[int] = None,
+    max_length: Optional[int] = None,
     gt: Optional[float] = None,
     lt: Optional[float] = None,
     ge: Optional[float] = None,
@@ -165,7 +165,7 @@ def GtField(  # noqa
     allow_inf_nan: Optional[bool] = None,
     max_digits: Optional[int] = None,
     decimal_places: Optional[int] = None,
-    column_name: Optional[str] = None,
+    columns: Optional[str | typing.Sequence[str]] = None,
     **kwargs: Any,
 ) -> Any:
     return construct_field(
@@ -187,14 +187,14 @@ def GtField(  # noqa
         allow_inf_nan=allow_inf_nan,
         max_digits=max_digits,
         decimal_places=decimal_places,
-        column_name=column_name,
+        columns=columns,
         **kwargs,
     )
 
 
 class GeFieldInfo(QueryFieldInfo):
-    def construct_condition(self, model, name, value):
-        return getattr(model, name) >= value
+    def construct_condition(self, model, names, value):
+        return getattr(model, names[0]) >= value
 
 
 def GeField(  # noqa
@@ -206,8 +206,8 @@ def GeField(  # noqa
     title: Optional[str] = None,
     description: Optional[str] = None,
     exclude: Optional[Any] = None,
-    min_length: Optional[str] = None,
-    max_length: Optional[str] = None,
+    min_length: Optional[int] = None,
+    max_length: Optional[int] = None,
     gt: Optional[float] = None,
     lt: Optional[float] = None,
     ge: Optional[float] = None,
@@ -216,7 +216,7 @@ def GeField(  # noqa
     allow_inf_nan: Optional[bool] = None,
     max_digits: Optional[int] = None,
     decimal_places: Optional[int] = None,
-    column_name: Optional[str] = None,
+    columns: Optional[str | typing.Sequence[str]] = None,
     **kwargs: Any,
 ) -> Any:
     return construct_field(
@@ -238,14 +238,14 @@ def GeField(  # noqa
         allow_inf_nan=allow_inf_nan,
         max_digits=max_digits,
         decimal_places=decimal_places,
-        column_name=column_name,
+        columns=columns,
         **kwargs,
     )
 
 
 class LtFieldInfo(QueryFieldInfo):
-    def construct_condition(self, model, name, value):
-        return getattr(model, name) < value
+    def construct_condition(self, model, names, value):
+        return getattr(model, names[0]) < value
 
 
 def LtField(  # noqa
@@ -257,8 +257,8 @@ def LtField(  # noqa
     title: Optional[str] = None,
     description: Optional[str] = None,
     exclude: Optional[Any] = None,
-    min_length: Optional[str] = None,
-    max_length: Optional[str] = None,
+    min_length: Optional[int] = None,
+    max_length: Optional[int] = None,
     gt: Optional[float] = None,
     lt: Optional[float] = None,
     ge: Optional[float] = None,
@@ -267,7 +267,7 @@ def LtField(  # noqa
     allow_inf_nan: Optional[bool] = None,
     max_digits: Optional[int] = None,
     decimal_places: Optional[int] = None,
-    column_name: Optional[str] = None,
+    columns: Optional[str | typing.Sequence[str]] = None,
     **kwargs: Any,
 ) -> Any:
     return construct_field(
@@ -289,14 +289,14 @@ def LtField(  # noqa
         allow_inf_nan=allow_inf_nan,
         max_digits=max_digits,
         decimal_places=decimal_places,
-        column_name=column_name,
+        columns=columns,
         **kwargs,
     )
 
 
 class LeFieldInfo(QueryFieldInfo):
-    def construct_condition(self, model, name, value):
-        return getattr(model, name) <= value
+    def construct_condition(self, model, names, value):
+        return getattr(model, names[0]) <= value
 
 
 def LeField(  # noqa
@@ -308,8 +308,8 @@ def LeField(  # noqa
     title: Optional[str] = None,
     description: Optional[str] = None,
     exclude: Optional[Any] = None,
-    min_length: Optional[str] = None,
-    max_length: Optional[str] = None,
+    min_length: Optional[int] = None,
+    max_length: Optional[int] = None,
     gt: Optional[float] = None,
     lt: Optional[float] = None,
     ge: Optional[float] = None,
@@ -318,7 +318,7 @@ def LeField(  # noqa
     allow_inf_nan: Optional[bool] = None,
     max_digits: Optional[int] = None,
     decimal_places: Optional[int] = None,
-    column_name: Optional[str] = None,
+    columns: Optional[str | typing.Sequence[str]] = None,
     **kwargs: Any,
 ) -> Any:
     return construct_field(
@@ -340,14 +340,14 @@ def LeField(  # noqa
         allow_inf_nan=allow_inf_nan,
         max_digits=max_digits,
         decimal_places=decimal_places,
-        column_name=column_name,
+        columns=columns,
         **kwargs,
     )
 
 
 class ContainsFieldInfo(QueryFieldInfo):
-    def construct_condition(self, model, name, value):
-        return getattr(model, name).contains(value)
+    def construct_condition(self, model, names, value):
+        return getattr(model, names[0]).contains(value)
 
 
 def ContainsField(  # noqa
@@ -359,8 +359,8 @@ def ContainsField(  # noqa
     title: Optional[str] = None,
     description: Optional[str] = None,
     exclude: Optional[Any] = None,
-    min_length: Optional[str] = None,
-    max_length: Optional[str] = None,
+    min_length: Optional[int] = None,
+    max_length: Optional[int] = None,
     gt: Optional[float] = None,
     lt: Optional[float] = None,
     ge: Optional[float] = None,
@@ -369,7 +369,7 @@ def ContainsField(  # noqa
     allow_inf_nan: Optional[bool] = None,
     max_digits: Optional[int] = None,
     decimal_places: Optional[int] = None,
-    column_name: Optional[str] = None,
+    columns: Optional[str | typing.Sequence[str]] = None,
     **kwargs: Any,
 ) -> Any:
     return construct_field(
@@ -391,18 +391,18 @@ def ContainsField(  # noqa
         allow_inf_nan=allow_inf_nan,
         max_digits=max_digits,
         decimal_places=decimal_places,
-        column_name=column_name,
+        columns=columns,
         **kwargs,
     )
 
 
 class SearchFieldInfo(QueryFieldInfo):
-    def construct_condition(self, model, name, value):
+    def construct_condition(self, model, names, value):
         raise NotImplementedError
 
 
 class OrderingFieldInfo(QueryFieldInfo):
-    def construct_condition(self, model, name, value):
+    def construct_condition(self, model, names, value):
         raise NotImplementedError
 
 
@@ -421,9 +421,12 @@ class BaseFilter(Schema):
                 continue
             if not isinstance(field_info, QueryFieldInfo):
                 continue
-            column_name = field_info.column_name or name
-            if not hasattr(model, column_name):
-                raise FilterError(f'Model {model.__name__} has no column {column_name}')
-            condition = field_info.construct_condition(model, column_name, value)
+            columns = field_info.columns or [name]
+            for column_name in columns:
+                if not hasattr(model, column_name):
+                    raise FilterError(
+                        f'Model {model.__name__} has no column {column_name}'
+                    )
+            condition = field_info.construct_condition(model, columns, value)
             conditions.append(condition)
         return and_(*conditions)

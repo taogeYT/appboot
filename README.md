@@ -109,7 +109,7 @@ from appboot.params import QuerySchema
 from appboot.filters import EqField, ContainsField
 
 class QuestionQuerySchema(QuerySchema):
-    ids: Optional[list[int]] = EqField(None, column_name='id')  # query question by id list
+    ids: Optional[list[int]] = EqField(None, alias='pk', columns='id')  # query question by id list
     question_text: Optional[str] = ContainsField(None)  # fuzzy query question_text
 ```
 Replace QuerySchema with QuestionQuerySchema in the file polls/views.py, refresh docs in browser, You will see two new query param in query questions api
