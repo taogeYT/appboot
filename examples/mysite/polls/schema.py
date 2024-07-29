@@ -8,7 +8,7 @@ from polls.models import Choice, Question
 
 
 class QuestionQuerySchema(QuerySchema):
-    ids: Optional[list[int]] = EqField(None, column_name='id')
+    ids: Optional[list[int]] = EqField(None, alias='pk', columns='id')
     question_text: Optional[str] = ContainsField(None)
 
 
