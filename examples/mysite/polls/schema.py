@@ -15,7 +15,8 @@ class QuestionQuerySchema(QuerySchema):
 class QuestionSchema(ModelSchema):
     class Meta:
         model = Question
-        read_only_fields = ('id', 'created_at', 'updated_at')
+        fields = ('id', 'question_text', 'pub_date', 'created_at')
+        read_only_fields = ('id', 'created_at')
 
 
 class ChoiceSchema(ModelSchema):
