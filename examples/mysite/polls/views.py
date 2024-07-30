@@ -1,8 +1,8 @@
 # Create your api here.
 from fastapi import APIRouter, Depends
 
+from appboot import PaginationResult, QueryDepends
 from appboot.db import create_tables
-from appboot.params import PaginationResult, QueryDepends
 from polls.models import Question
 from polls.schema import QuestionQuerySchema, QuestionSchema
 

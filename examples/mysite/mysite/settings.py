@@ -27,3 +27,5 @@ ROOT_URLCONF: str = 'mysite.urls'
 DATABASES: DataBases = DataBases(
     default=EngineConfig(url=f'sqlite+aiosqlite:///{BASE_DIR}/db.sqlite3', echo=True)
 )
+
+DEFAULT_TABLE_NAME_PREFIX: str = 'app_'
