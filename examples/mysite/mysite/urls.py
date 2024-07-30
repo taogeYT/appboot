@@ -9,4 +9,4 @@ from fastapi import APIRouter
 from polls.views import router
 
 root_router = APIRouter()
-root_router.include_router(router)
+root_router.include_router(router, prefix='/polls', tags=['polls'])
