@@ -11,7 +11,7 @@ from typing import (
 )
 
 if TYPE_CHECKING:
-    from appboot.schema import ModelSchema
+    from appboot.schema import Schema
 
 T = TypeVar('T')
 
@@ -88,16 +88,16 @@ class BaseRepository(Protocol[T]):
     async def get(self, pk: int) -> Optional[T]:
         ...
 
-    async def bulk_create(self, objs: list[ModelSchema], flush=False) -> list[T]:
+    async def bulk_create(self, objs: list[Schema], flush=False) -> list[T]:
         ...
 
-    async def create(self, obj: ModelSchema, flush=False) -> T:
+    async def create(self, obj: Schema, flush=False) -> T:
         ...
 
     async def update(self, values: dict[str, Any]) -> int:
         ...
 
-    async def update_one(self, pk: int, obj: ModelSchema, flush=False) -> T:
+    async def update_one(self, pk: int, obj: Schema, flush=False) -> T:
         ...
 
     async def delete_one(self, pk: int, flush=False) -> T:
