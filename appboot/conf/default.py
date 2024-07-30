@@ -17,8 +17,7 @@ class EngineConfig(BaseModel):
     echo: bool = True
 
 
-class DataBases(BaseModel):
-    default: EngineConfig
+DataBases = dict[str, EngineConfig]
 
 
 class FastAPIConfig(BaseModel):
