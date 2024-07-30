@@ -1,5 +1,6 @@
 # App Boot
-App Boot 是一个 FastAPI 项目脚手架，旨在提供类似 Django 的结构和开发体验。
+[AppBoot](https://github.com/taogeYT/appboot) 像Django一样使用fastAPI，内置sqlalchemy开箱即用，旨在提供类似 Django 的开发体验。
+
 ## 技术栈
 - Python 3.9+
 - FastAPI
