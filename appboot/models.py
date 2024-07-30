@@ -5,10 +5,10 @@ from datetime import datetime
 from typing import Optional, TypeVar
 
 from sqlalchemy import DateTime, func
-from sqlalchemy.orm import Mapped, declared_attr, mapped_column, with_loader_criteria
-from sqlalchemy.sql.base import ExecutableOption
+from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 from typing_extensions import Self
 
+from appboot import timezone
 from appboot.db import Base
 from appboot.interfaces import BaseRepository
 from appboot.repository import Repository
@@ -43,10 +43,14 @@ class DeletedAtMixin:
         DateTime(timezone=True), default=None
     )
 
-    @declared_attr.directive  # noqa
+    # @declared_attr.directive  # noqa
     @classmethod
-    def __deleted_at_option__(cls) -> typing.Optional[ExecutableOption]:
-        return with_loader_criteria(cls, cls.deleted_at.is_(None))
+    def __delete_condition__(cls):
+        return cls.deleted_at.is_(None)
+
+    @classmethod
+    def __delete_value__(cls) -> dict[str, typing.Any]:
+        return {'deleted_at': timezone.now()}
 
 
 class Model(TableNameMixin, Base):
@@ -54,7 +58,7 @@ class Model(TableNameMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     objects: typing.ClassVar[BaseRepository[Self]] = Repository()
 
-    @declared_attr.directive  # noqa
-    @classmethod
-    def __deleted_at_option__(cls) -> typing.Optional[ExecutableOption]:
-        return None
+    def update(self, **values: dict[str, typing.Any]):
+        for name, value in values.items():
+            if hasattr(self, name) and getattr(self, name) != value:
+                setattr(self, name, value)

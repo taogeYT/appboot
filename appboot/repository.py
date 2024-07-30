@@ -1,22 +1,22 @@
 from __future__ import annotations
 
 import typing
+from functools import cached_property
 from typing import Any, Generic, Optional, Sequence
 
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, inspect
 from sqlalchemy.ext.asyncio.session import AsyncSession
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import LoaderCriteriaOption, Query, with_loader_criteria
 from sqlalchemy.util import greenlet_spawn
 
-from appboot import timezone
 from appboot.db import ScopedSession
 from appboot.exceptions import DoesNotExist
 from appboot.interfaces import BaseRepository
 
 if typing.TYPE_CHECKING:
     from appboot.models import Model  # noqa
-    from appboot.schema import ModelSchema
+    from appboot.schema import Schema
 
 ModelT = typing.TypeVar('ModelT', bound='Model')
 
@@ -74,16 +74,12 @@ class _Query(BaseModel):
 class Repository(BaseRepository[ModelT], Generic[ModelT]):
     def __init__(self, model: Optional[type[ModelT]] = None):
         self._model = model
-        self._primary_key = ()
         if self._model is not None:
             mapper = inspect(model)
             if mapper is None or not mapper.is_mapper:
                 raise ValueError('Expected mapped class or mapper, got: %r' % model)
             self._primary_key = mapper.primary_key
-            # self._query = _Query(order_by=mapper.primary_key)
             self._query = AsyncQuery(self.model, self.session.sync_session)
-            if self.model.__deleted_at_option__:
-                self.options(self.model.__deleted_at_option__)
 
     def __get__(self, instance, cls):
         if instance is None:
@@ -173,13 +169,13 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         self._query = self._query.with_entities(*entities, **__kw)
         return self
 
-    def clone(self):
+    def clone(self) -> Repository:
         r = self.__class__(self.model)
         r._query = self._query
         return r
 
     async def _fetch_all(self) -> Sequence[ModelT]:
-        return await self._query.async_all()
+        return await self.get_query().async_all()
 
     def __aiter__(self):
         async def generator():
@@ -189,12 +185,29 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
 
         return generator()
 
+    @cached_property
+    def _delete_options(self) -> typing.Sequence[LoaderCriteriaOption]:
+        if self._model_delete_condition is not None:
+            return [with_loader_criteria(self.model, self._model_delete_condition)]
+        return []
+
+    @cached_property
+    def _model_delete_condition(self):
+        if hasattr(self.model, '__delete_condition__'):
+            return self.model.__delete_condition__()
+        return None
+
+    def get_query(self):
+        if self._delete_options:
+            return self._query.options(*self._delete_options)
+        return self._query
+
     @property
     def statement(self):
-        return self._query.statement
+        return self.get_query().statement
 
     async def count(self) -> int:
-        return await self._query.async_count()
+        return await self.get_query().async_count()
 
     async def all(self) -> Sequence[ModelT]:
         return await self._fetch_all()
@@ -204,31 +217,27 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         return obj
 
     async def get(self, pk: typing.Any) -> ModelT:
-        obj = await self.session.get(
-            self.model, pk, options=tuple(self._query._with_options) or None
-        )
+        obj = await self.session.get(self.model, pk, options=self._delete_options)
         if not obj:
-            raise DoesNotExist(f'{self.model.__name__}.{pk} DoesNotExist')
+            raise DoesNotExist(f'{self.model.__name__} Not Exist')
         return obj
 
-    def _model_dump_for_write(
-        self, obj: ModelSchema | dict[str, Any]
-    ) -> dict[str, Any]:
+    def _model_dump_for_write(self, obj: Schema | dict[str, Any]) -> dict[str, Any]:
         if isinstance(obj, dict):
             return obj
-        read_only_fields = set(obj.Meta.read_only_fields) | set(
-            c.name for c in self.primary_key
-        )
+        read_only_fields = set(c.name for c in self.primary_key)
+        if hasattr(obj, 'Meta') and hasattr(obj.Meta, 'read_only_fields'):
+            read_only_fields |= set(obj.Meta.read_only_fields)
         return obj.dict(exclude=read_only_fields, exclude_unset=True)
 
-    async def bulk_create(self, objs: list[ModelSchema], flush=False) -> list[ModelT]:
+    async def bulk_create(self, objs: list[Schema], flush=False) -> list[ModelT]:
         instances = [self.model(**self._model_dump_for_write(obj)) for obj in objs]
         self.session.add_all(instances)
         if flush:
             await self.session.flush(instances)
         return instances
 
-    async def create(self, obj: ModelSchema | dict[str, Any], flush=False) -> ModelT:
+    async def create(self, obj: Schema | dict[str, Any], flush=False) -> ModelT:
         instance = self.model(**self._model_dump_for_write(obj))
         self.session.add(instance)
         if flush:
@@ -236,25 +245,27 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
             await self.session.refresh(instance)
         return instance
 
-    async def update(self, values: dict[str, Any]) -> int:
-        rowcount = await self._query.async_update(values)
+    async def update(self, values: Schema | dict[str, Any]) -> int:
+        query = self.get_query()
+        if self._model_delete_condition is not None:
+            query = query.filter(self._model_delete_condition)
+        rowcount = await query.async_update(self._model_dump_for_write(values))
         return rowcount
 
     async def update_one(
-        self, pk: int, obj: ModelSchema | dict[str, Any], flush=False
+        self, pk: int, obj: Schema | dict[str, Any], flush=False
     ) -> ModelT:
         instance = await self.get(pk)
-        for name, value in self._model_dump_for_write(obj).items():
-            if hasattr(instance, name) and getattr(instance, name) != value:
-                setattr(instance, name, value)
+        instance.update(**self._model_dump_for_write(obj))
         if flush:
             await self.session.flush([instance])
         return instance
 
     async def delete_one(self, pk: int, flush=False) -> ModelT:
         instance = await self.get(pk)
-        if self.model.__deleted_at_option__ and hasattr(instance, 'deleted_at'):
-            instance.deleted_at = timezone.now()
+        if hasattr(self.model, '__delete_value__'):
+            values = self.model.__delete_value__()  # type: ignore
+            instance.update(**values)
         else:
             await self.session.delete(instance)
         if flush:
