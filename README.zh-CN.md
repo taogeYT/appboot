@@ -1,35 +1,33 @@
 # App Boot
-English | **[中文翻译](./README.zh-CN.md)**
-
-App Boot is a FastAPI project template designed to provide a Django-like structure and development experience.
-## Technology Stack
+App Boot 是一个 FastAPI 项目脚手架，旨在提供类似 Django 的结构和开发体验。
+## 技术栈
 - Python 3.9+
 - FastAPI
 - SQLAlchemy 2.0+
 - Pydantic
 - Uvicorn
-## Quick Start
-### Start a New Project
+## 快速开始
+### 启动新项目
 ```shell
-# Create the project directory
+# 创建项目目录
 mkdir mysite
 cd mysite
-# Create a virtual environment to isolate our package dependencies locally
+# 创建虚拟环境以在本地隔离包依赖
 python3 -m venv env
-source env/bin/activate  # On Windows use `env\\Scripts\\activate`
-# Install appboot and aiosqlite into the virtual environment
+source env/bin/activate  # Windows 使用 `env\\Scripts\\activate`
+# 安装 appboot 和 aiosqlite 到虚拟环境中
 pip install appboot aiosqlite
-# Set up a new project with a single application
-appboot startproject mysite .  # Note the trailing '.' character
-# Start the server, application running on http://127.0.0.1:8000
+# 使用单个应用程序设置新项目
+appboot startproject mysite .  # 注意尾随的 '.' 字符
+# 启动服务器，应用运行在 http://127.0.0.1:8000
 python manage.py runserver
 ```
-### Start a New App 'polls'
+### 新建APP polls
 ```shell
 python manage.py startapp polls
 ```
-### Create a Model
-Define a `Question` model in `polls/models.py`.
+### 创建数据库 Model
+在 `polls/models.py` 中定义 `Question` 模型。
 ```python
 from datetime import datetime
 from sqlalchemy.orm import Mapped
@@ -39,8 +37,8 @@ class Question(models.Model):
     question_text: Mapped[str]
     pub_date: Mapped[datetime]
 ```
-### Create a Schema
-Define a `Question` schema in `polls/schema.py`.
+### 创建 Schema
+在 `polls/schema.py` 中定义 `Question` Schema。
 ```python
 from appboot.schema import ModelSchema
 from polls.models import Question
@@ -49,8 +47,8 @@ class QuestionSchema(ModelSchema):
     class Meta:
         model = Question
 ```
-### Write CRUD API
-Write the CRUD API in `polls/views.py`.
+### 编写 CRUD API
+在 `polls/views.py` 中编写 CRUD API。
 ```python
 from fastapi import APIRouter, Depends
 from appboot.db import create_tables
@@ -80,8 +78,8 @@ async def update_question(question_id: int, question: QuestionSchema):
 async def delete_question(question_id: int):
     return await Question.objects.delete_one(question_id, flush=True)
 ```
-### Configure API Routes
-Wire up the API URLs in `mysite/urls.py`.
+### 配置 API 路由规则
+在 `mysite/urls.py` 中配置 API 路由。
 ```python
 from fastapi import APIRouter
 from polls.views import router
@@ -89,24 +87,25 @@ from polls.views import router
 root_router = APIRouter()
 root_router.include_router(router, prefix='/polls', tags=['polls'])
 ```
-### Testing Our API
+### 测试 API
 ```shell
 python manage.py runserver
 ```
-We can now access our API directly through the browser at [http://127.0.0.1:8000/docs/](http://127.0.0.1:8000/docs/).
-![API Documentation](https://raw.githubusercontent.com/taogeYT/appboot/main/images/polls.png)
-### Create Complex Query Schema
-Create a `QuestionQuerySchema` for complex queries in `polls/schema.py`.
+现在可以通过浏览器直接访问我们的 API 文档，URL 为 [http://127.0.0.1:8000/docs/](http://127.0.0.1:8000/docs/)。
+![API 文档](https://raw.githubusercontent.com/taogeYT/appboot/main/images/polls.png)
+### 创建复杂查询的 QuerySchema
+在 `polls/schema.py` 中创建 `QuestionQuerySchema` 以进行复杂查询。
 ```python
 from typing import Optional
 from appboot.params import QuerySchema
 from appboot.filters import EqField, ContainsField
 
 class QuestionQuerySchema(QuerySchema):
-    ids: Optional[list[int]] = EqField(None, alias='pk', columns='id')  # Query questions by ID list
-    question_text: Optional[str] = ContainsField(None)  # Fuzzy query question_text
+    ids: Optional[list[int]] = EqField(None, alias='pk', columns='id')  # 按 ID 列表查询 Question
+    question_text: Optional[str] = ContainsField(None)  # question_text 字段模糊查询
 ```
-Replace `QuerySchema` with `QuestionQuerySchema` in `polls/views.py`, refresh the docs in the browser, and you will see two new query parameters in the query questions API.
-![Complex Query Parameters](https://raw.githubusercontent.com/taogeYT/appboot/main/images/query.png)
-## Try Out Examples
-Go to [Examples](./examples) for more examples.
+在 `polls/views.py` 文件中将 `QuerySchema` 替换为 `QuestionQuerySchema`，然后在浏览器中刷新文档页面，你会看到question列表接口增加了两个新的查询参数。
+![复杂查询参数](https://raw.githubusercontent.com/taogeYT/appboot/main/images/query.png)
+
+## 尝试示例
+访问 [Examples](./examples) 获取更多示例。
