@@ -40,7 +40,11 @@ def _parse_field_from_sqlalchemy_model(
                 continue
             if column_property.name in _exclude:
                 continue
-            if column_property.nullable or column_property.name in _read_only_fields:
+            if (
+                column_property.primary_key
+                or column_property.nullable
+                or column_property.name in _read_only_fields
+            ):
                 python_type = typing.Optional[column_property.type.python_type]
                 default = None
             else:
