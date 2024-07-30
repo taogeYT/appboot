@@ -1,7 +1,7 @@
 # App Boot
-English | **[中文翻译](./README.zh-CN.md)**
+English | [中文翻译](./README.zh-CN.md)
 
-App Boot is a FastAPI project template designed to provide a Django-like structure and development experience.
+[AppBoot](https://github.com/taogeYT/appboot) is a FastAPI project template designed to provide a Django-like structure and development experience.
 ## Technology Stack
 - Python 3.9+
 - FastAPI
