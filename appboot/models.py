@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 from typing_extensions import Self
 
 from appboot import timezone
+from appboot.conf import settings
 from appboot.db import Base
 from appboot.interfaces import BaseRepository
 from appboot.repository import Repository
@@ -20,8 +21,8 @@ ModelT = TypeVar('ModelT', bound='Model')
 class TableNameMixin:
     @declared_attr.directive  # noqa
     @classmethod
-    def __tablename__(cls) -> Optional[str]:
-        return camel_to_snake(cls.__name__)
+    def __tablename__(cls) -> str:
+        return f'{settings.DEFAULT_TABLE_NAME_PREFIX}{camel_to_snake(cls.__name__)}'
 
 
 class TimestampMixin:

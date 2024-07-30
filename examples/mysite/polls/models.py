@@ -13,6 +13,6 @@ class Question(models.DeletedAtMixin, models.TimestampMixin, models.Model):
 
 
 class Choice(models.Model):
-    question_id: Mapped[int] = mapped_column(Integer, ForeignKey('question.id'))
+    question_id: Mapped[int] = mapped_column(Integer, ForeignKey('app_question.id'))
     choice_text: Mapped[str]
-    votes: Mapped[int] = mapped_column(Integer, default=0)
+    votes: Mapped[int] = mapped_column(default=0)

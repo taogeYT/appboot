@@ -34,3 +34,5 @@ ROOT_URLCONF: str = "{{ project_name }}.urls"
 DATABASES: DataBases = DataBases(
     default=EngineConfig(url=f'sqlite+aiosqlite:///{BASE_DIR}/db.sqlite3')
 )
+
+DEFAULT_TABLE_NAME_PREFIX: str = ''
