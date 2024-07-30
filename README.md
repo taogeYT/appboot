@@ -64,7 +64,7 @@ from polls.schema import QuestionSchema
 
 
 router = APIRouter(
-    prefix='/polls', tags=['polls'], dependencies=[Depends(create_tables)]
+    dependencies=[Depends(create_tables)]
 )
 
 @router.post('/questions/', response_model=QuestionSchema)
@@ -91,9 +91,9 @@ Okay, now let's wire up the API URLs. On to mysite/urls.py...
 ```python3
 from fastapi import APIRouter
 from polls.views import router
-# todo
+
 root_router = APIRouter()
-root_router.include_router(router)
+root_router.include_router(router, prefix='/polls', tags=['polls'])
 ```
 Testing our API
 ```shell
