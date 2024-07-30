@@ -6,9 +6,7 @@ from appboot.params import PaginationResult, QueryDepends
 from polls.models import Question
 from polls.schema import QuestionQuerySchema, QuestionSchema
 
-router = APIRouter(
-    prefix='/polls', tags=['polls'], dependencies=[Depends(create_tables)]
-)
+router = APIRouter(dependencies=[Depends(create_tables)])
 
 
 @router.post('/questions/', response_model=QuestionSchema)
