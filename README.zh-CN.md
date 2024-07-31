@@ -39,7 +39,7 @@ class Question(models.Model):
     pub_date: Mapped[datetime]
 ```
 ### 创建 Schema
-在 `polls/schema.py` 中定义 `Question` Schema。
+在 `polls/schema.py` 中定义 `QuestionSchema`。
 ```python
 from appboot.schema import ModelSchema
 from polls.models import Question
@@ -93,7 +93,7 @@ root_router.include_router(router, prefix='/polls', tags=['polls'])
 python manage.py runserver
 ```
 现在可以通过浏览器直接访问我们的 API 文档，URL 为 [http://127.0.0.1:8000/docs/](http://127.0.0.1:8000/docs/)。
-![API 文档](https://raw.githubusercontent.com/taogeYT/appboot/main/images/polls.png)
+![API 文档](https://github.com/taogeYT/oss/blob/main/resource/appboot/images/polls.png?raw=true)
 ### 创建复杂查询的 QuerySchema
 在 `polls/schema.py` 中创建 `QuestionQuerySchema` 以进行复杂查询。
 ```python
@@ -106,7 +106,7 @@ class QuestionQuerySchema(QuerySchema):
     question_text: Optional[str] = ContainsField(None)  # question_text 字段模糊查询
 ```
 在 `polls/views.py` 文件中将 `QuerySchema` 替换为 `QuestionQuerySchema`，然后在浏览器中刷新文档页面，你会看到question列表接口增加了两个新的查询参数。
-![复杂查询参数](https://raw.githubusercontent.com/taogeYT/appboot/main/images/query.png)
+![复杂查询参数](https://github.com/taogeYT/oss/blob/main/resource/appboot/images/query.png?raw=true)
 
 ## 尝试示例
 访问 [Examples](./examples) 获取更多示例。
