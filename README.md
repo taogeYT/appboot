@@ -40,7 +40,7 @@ class Question(models.Model):
     pub_date: Mapped[datetime]
 ```
 ### Create a Schema
-Define a `Question` schema in `polls/schema.py`.
+Define a `QuestionSchema` schema in `polls/schema.py`.
 ```python
 from appboot.schema import ModelSchema
 from polls.models import Question
@@ -94,7 +94,7 @@ root_router.include_router(router, prefix='/polls', tags=['polls'])
 python manage.py runserver
 ```
 We can now access our API directly through the browser at [http://127.0.0.1:8000/docs/](http://127.0.0.1:8000/docs/).
-![API Documentation](https://raw.githubusercontent.com/taogeYT/appboot/main/images/polls.png)
+![API Documentation](https://github.com/taogeYT/oss/blob/main/resource/appboot/images/polls.png?raw=true)
 ### Create Complex Query Schema
 Create a `QuestionQuerySchema` for complex queries in `polls/schema.py`.
 ```python
@@ -107,6 +107,6 @@ class QuestionQuerySchema(QuerySchema):
     question_text: Optional[str] = ContainsField(None)  # Fuzzy query question_text
 ```
 Replace `QuerySchema` with `QuestionQuerySchema` in `polls/views.py`, refresh the docs in the browser, and you will see two new query parameters in the query questions API.
-![Complex Query Parameters](https://raw.githubusercontent.com/taogeYT/appboot/main/images/query.png)
+![Complex Query Parameters](https://github.com/taogeYT/oss/blob/main/resource/appboot/images/query.png?raw=true)
 ## Try Out Examples
 Go to [Examples](./examples) for more examples.
