@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any
 
 from pydantic.version import VERSION as P_VERSION
@@ -34,6 +35,7 @@ else:
 PydanticModelMetaclass = ModelMetaclass
 
 
+@lru_cache()
 def get_schema_fields(schema) -> dict[str, ModelField]:
     if PYDANTIC_V2:
         return {
