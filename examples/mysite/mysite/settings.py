@@ -17,15 +17,10 @@ PROJECT_NAME: str = 'mysite'
 DEBUG: bool = True
 
 ALLOWED_HOSTS: list[str] = []
-ALLOW_METHODS: list[str] = []
-ALLOW_HEADERS: list[str] = []
 
 ROOT_URLCONF: str = 'mysite.urls'
-
 
 # Database
 DATABASES: DataBases = DataBases(
     default=EngineConfig(url=f'sqlite+aiosqlite:///{BASE_DIR}/db.sqlite3', echo=True)
 )
-
-DEFAULT_TABLE_NAME_PREFIX: str = 'app_'

@@ -1,4 +1,4 @@
-from appboot.apps import AppConfig
+from appboot.app import AppConfig
 
 
 class PollsConfig(AppConfig):

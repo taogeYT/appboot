@@ -5,7 +5,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import inspect
-from sqlalchemy.orm import ColumnProperty
 from typing_extensions import Self
 
 from appboot._compat import PYDANTIC_V2, PydanticModelMetaclass
@@ -33,27 +32,25 @@ def _parse_field_from_sqlalchemy_model(
     _exclude = set() if exclude is None else set(exclude)
     _read_only_fields = set() if read_only_fields is None else set(read_only_fields)
     mapper = inspect(model)
-    for attr in mapper.attrs:
-        if isinstance(attr, ColumnProperty):
-            column_property = attr.class_attribute
-            if include and column_property.name not in include:
-                continue
-            if column_property.name in _exclude:
-                continue
-            if (
-                column_property.primary_key
-                or column_property.nullable
-                or column_property.name in _read_only_fields
-            ):
-                python_type = typing.Optional[column_property.type.python_type]
-                default = None
-            else:
-                python_type = column_property.type.python_type
-                default = ...
-            __annotations__[column_property.name] = python_type
-            __dict__[column_property.name] = Field(
-                default, title=column_property.doc or column_property.name
-            )
+    for column_property in mapper.columns:
+        if include and column_property.name not in include:
+            continue
+        if column_property.name in _exclude:
+            continue
+        if (
+            column_property.primary_key
+            or column_property.nullable
+            or column_property.name in _read_only_fields
+        ):
+            python_type = typing.Optional[column_property.type.python_type]
+            default = None
+        else:
+            python_type = column_property.type.python_type
+            default = ...
+        __annotations__[column_property.name] = python_type
+        __dict__[column_property.name] = Field(
+            default, title=column_property.doc or column_property.name
+        )
     return __dict__, __annotations__
 
 
