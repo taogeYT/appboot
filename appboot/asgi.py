@@ -24,12 +24,13 @@ def get_fastapi_application():
         **settings.FASTAPI_CONFIG.dict(),
         dependencies=[Depends(get_session)],
     )
-    app.add_middleware(
-        CORSMiddleware,  # type: ignore[unused-ignore]
-        allow_origins=settings.ALLOWED_HOSTS,
-        allow_methods=settings.ALLOW_METHODS,
-        allow_headers=settings.ALLOW_HEADERS,
-    )
+    if not settings.DEBUG:
+        app.add_middleware(
+            CORSMiddleware,  # type: ignore[unused-ignore]
+            allow_origins=settings.ALLOWED_HOSTS,
+            allow_methods=settings.ALLOW_METHODS,
+            allow_headers=settings.ALLOW_HEADERS,
+        )
     fastapi_register_routers(app)
     return app
 
