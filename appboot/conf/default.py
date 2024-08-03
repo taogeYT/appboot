@@ -34,8 +34,8 @@ class DefaultSettings(BaseSettings):
     )
     FASTAPI_CONFIG: FastAPIConfig = FastAPIConfig()
 
-    ALLOWED_HOSTS: list[str] = []
-    ALLOW_METHODS: list[str] = []
-    ALLOW_HEADERS: list[str] = []
+    ALLOWED_HOSTS: list[str] = ['*']
+    ALLOW_METHODS: list[str] = ['*']
+    ALLOW_HEADERS: list[str] = ['*']
     ROOT_URLCONF: str = ''
     DEFAULT_TABLE_NAME_PREFIX: str = ''
