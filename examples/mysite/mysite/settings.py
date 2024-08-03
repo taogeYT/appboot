@@ -16,11 +16,11 @@ PROJECT_NAME: str = 'mysite'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG: bool = True
 
-ALLOWED_HOSTS: list[str] = []
+ALLOWED_HOSTS: list[str] = ['*']
 
 ROOT_URLCONF: str = 'mysite.urls'
 
 # Database
 DATABASES: DataBases = DataBases(
-    default=EngineConfig(url=f'sqlite+aiosqlite:///{BASE_DIR}/db.sqlite3', echo=True)
+    default=EngineConfig(url=f'sqlite+aiosqlite:///{BASE_DIR}/db.sqlite3', echo=DEBUG)
 )
