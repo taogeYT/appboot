@@ -11,7 +11,7 @@ router = APIRouter(dependencies=[Depends(create_tables)])
 
 @router.post('/questions/', response_model=QuestionSchema)
 async def create_question(question: QuestionSchema):
-    return await Question.objects.create(question, flush=True)
+    return await question.create()
 
 
 @router.get('/questions/', response_model=PaginationResult[QuestionSchema])
@@ -26,12 +26,14 @@ async def get_question(question_id: int):
 
 @router.put('/questions/{question_id}', response_model=QuestionSchema)
 async def update_question(question_id: int, question: QuestionSchema):
-    return await Question.objects.update_one(question_id, question)
+    instance = await Question.objects.get(question_id)
+    return await question.update(instance)
 
 
 @router.delete('/questions/{question_id}', response_model=QuestionSchema)
 async def delete_question(question_id: int):
-    return await Question.objects.delete_one(question_id, flush=True)
+    instance = await Question.objects.get(question_id)
+    return await instance.delete()
 
 
 @router.post('/questions/{question_text}', response_model=int)
