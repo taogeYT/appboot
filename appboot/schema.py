@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import inspect
 from typing_extensions import Self
 
-from appboot._compat import PYDANTIC_V2, PydanticModelMetaclass
+from appboot._compat import PYDANTIC_V2, PydanticModelMetaclass, get_schema_fields
 from appboot.models import Model
 
 ModelSchemaT = typing.TypeVar('ModelSchemaT', bound='ModelSchema')
@@ -37,6 +37,10 @@ def _parse_field_from_sqlalchemy_model(
             continue
         if column_property.name in _exclude:
             continue
+        if column_property.primary_key or column_property.name in _read_only_fields:
+            read_only = True
+        else:
+            read_only = False
         if (
             column_property.primary_key
             or column_property.nullable
@@ -49,7 +53,9 @@ def _parse_field_from_sqlalchemy_model(
             default = ...
         __annotations__[column_property.name] = python_type
         __dict__[column_property.name] = Field(
-            default, title=column_property.doc or column_property.name
+            default,
+            title=column_property.doc or column_property.name,
+            read_only=read_only,
         )
     return __dict__, __annotations__
 
@@ -148,3 +154,28 @@ class BaseMeta:
 
 class ModelSchema(Schema, metaclass=ModelSchemaMetaclass):
     Meta: typing.ClassVar[type[BaseMeta]]
+
+    @property
+    def validated_data(self):
+        fields = get_schema_fields(self.__class__)
+        include = set()
+        for name, field in fields.items():
+            json_schema_extra = field.field_info.json_schema_extra
+            if json_schema_extra and json_schema_extra.get('read_only'):
+                continue
+            include.add(name)
+        return self.dict(include=include, exclude_unset=True)
+
+    async def create(self, **kwargs):
+        kwargs.update(self.validated_data)
+        instance = await self.Meta.model.objects.create(**kwargs)
+        await self.Meta.model.objects.flush([instance])
+        return instance
+
+    async def update(self, instance: Model, **values):
+        values.update(self.validated_data)
+        for name, value in values.items():
+            if hasattr(instance, name) and getattr(instance, name) != value:
+                setattr(instance, name, value)
+        await self.Meta.model.objects.flush([instance])
+        return instance

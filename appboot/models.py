@@ -6,11 +6,12 @@ from typing import Optional, TypeVar
 
 from sqlalchemy import DateTime, func
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
+from sqlalchemy.sql.selectable import ForUpdateParameter
 from typing_extensions import Self
 
 from appboot import timezone
 from appboot.conf import settings
-from appboot.db import Base
+from appboot.db import Base, ScopedSession
 from appboot.interfaces import BaseRepository
 from appboot.repository import Repository
 from appboot.utils import camel_to_snake
@@ -59,7 +60,23 @@ class Model(TableNameMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     objects: typing.ClassVar[BaseRepository[Self]] = Repository()
 
-    def update(self, **values: dict[str, typing.Any]):
+    async def update(self, **values: dict[str, typing.Any]):
         for name, value in values.items():
             if hasattr(self, name) and getattr(self, name) != value:
                 setattr(self, name, value)
+
+    async def delete(self):
+        if hasattr(self.__class__, '__delete_value__'):
+            values = self.__class__.__delete_value__()
+            await self.update(**values)
+        else:
+            await ScopedSession().delete(self)
+        return self
+
+    async def refresh(
+        self,
+        attribute_names: Optional[typing.Iterable[str]] = None,
+        with_for_update: ForUpdateParameter = None,
+    ):
+        await ScopedSession().refresh(self, attribute_names, with_for_update)
+        return self
