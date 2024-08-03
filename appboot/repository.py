@@ -22,6 +22,9 @@ ModelT = typing.TypeVar('ModelT', bound='Model')
 
 
 class AsyncQuery(Query):
+    async def async_get(self, pk: Any):
+        return await greenlet_spawn(super().get, pk)
+
     async def async_count(self) -> int:
         return await greenlet_spawn(super().count)
 
@@ -197,7 +200,7 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
             return self.model.__delete_condition__()
         return None
 
-    def get_query(self):
+    def get_query(self) -> AsyncQuery:
         if self._delete_options:
             return self._query.options(*self._delete_options)
         return self._query
@@ -217,7 +220,7 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         return obj
 
     async def get(self, pk: typing.Any) -> ModelT:
-        obj = await self.session.get(self.model, pk, options=self._delete_options)
+        obj = await self.get_query().async_get(pk)
         if not obj:
             raise DoesNotExist(f'{self.model.__name__} Not Exist')
         return obj
@@ -230,44 +233,33 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
             read_only_fields |= set(obj.Meta.read_only_fields)
         return obj.dict(exclude=read_only_fields, exclude_unset=True)
 
-    async def bulk_create(self, objs: list[Schema], flush=False) -> list[ModelT]:
-        instances = [self.model(**self._model_dump_for_write(obj)) for obj in objs]
+    async def flush(self, objects: Optional[Sequence[Any]] = None) -> None:
+        return await self.session.flush(objects)
+
+    async def bulk_create(self, instances: list[ModelT], flush=False) -> list[ModelT]:
         self.session.add_all(instances)
         if flush:
             await self.session.flush(instances)
         return instances
 
-    async def create(self, obj: Schema | dict[str, Any], flush=False) -> ModelT:
-        instance = self.model(**self._model_dump_for_write(obj))
+    async def create(self, **values: dict[str, Any]) -> ModelT:
+        instance = self.model(**values)
         self.session.add(instance)
-        if flush:
-            await self.session.flush([instance])
-            await self.session.refresh(instance)
+        await self.session.flush([instance])
+        await self.session.refresh(instance)
         return instance
 
-    async def update(self, values: Schema | dict[str, Any]) -> int:
+    async def update(self, **values: dict[str, Any]) -> int:
         query = self.get_query()
         if self._model_delete_condition is not None:
             query = query.filter(self._model_delete_condition)
-        rowcount = await query.async_update(self._model_dump_for_write(values))
+        rowcount = await query.async_update(values)
         return rowcount
 
-    async def update_one(
-        self, pk: int, obj: Schema | dict[str, Any], flush=False
-    ) -> ModelT:
-        instance = await self.get(pk)
-        instance.update(**self._model_dump_for_write(obj))
-        if flush:
-            await self.session.flush([instance])
-        return instance
-
-    async def delete_one(self, pk: int, flush=False) -> ModelT:
-        instance = await self.get(pk)
-        if hasattr(self.model, '__delete_value__'):
+    async def delete(self) -> int:
+        if self._model_delete_condition is not None:
             values = self.model.__delete_value__()  # type: ignore
-            instance.update(**values)
+            rowcount = await self.update(**values)
         else:
-            await self.session.delete(instance)
-        if flush:
-            await self.session.flush([instance])
-        return instance
+            rowcount = await self.get_query().async_delete()
+        return rowcount

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import (
-    TYPE_CHECKING,
     Any,
     Optional,
     Protocol,
@@ -9,9 +8,6 @@ from typing import (
     TypeVar,
     runtime_checkable,
 )
-
-if TYPE_CHECKING:
-    from appboot.schema import Schema
 
 T = TypeVar('T')
 
@@ -85,20 +81,20 @@ class BaseRepository(Protocol[T]):
     async def first(self) -> Optional[T]:
         ...
 
-    async def get(self, pk: int) -> Optional[T]:
+    async def get(self, pk: int) -> T:
         ...
 
-    async def bulk_create(self, objs: list[Schema], flush=False) -> list[T]:
+    async def flush(self, objects: Optional[Sequence[Any]] = None) -> None:
         ...
 
-    async def create(self, obj: Schema, flush=False) -> T:
+    async def bulk_create(self, instances: list[T], flush=False) -> list[T]:
         ...
 
-    async def update(self, values: dict[str, Any]) -> int:
+    async def create(self, **values: dict[str, Any]) -> T:
         ...
 
-    async def update_one(self, pk: int, obj: Schema, flush=False) -> T:
+    async def update(self, **values: dict[str, Any]) -> int:
         ...
 
-    async def delete_one(self, pk: int, flush=False) -> T:
+    async def delete(self) -> int:
         ...
