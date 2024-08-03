@@ -1,5 +1,11 @@
-from appboot.apps import AppConfig as AppConfigBase
+from appboot.apps import BaseAppConfig, BaseSettings
 
 
-class ChatConfig(AppConfigBase):
+class ChatConfig(BaseAppConfig):
+    class Config(BaseSettings.Config):
+        env_prefix = 'chat_'
+
     name: str = 'chat'
+
+
+config = ChatConfig()
