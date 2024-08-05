@@ -2,7 +2,7 @@
 from datetime import datetime
 
 from sqlalchemy import ForeignKey, Integer
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from appboot import models
 
@@ -10,6 +10,7 @@ from appboot import models
 class Question(models.DeletedAtMixin, models.TimestampMixin, models.Model):
     question_text: Mapped[str]
     pub_date: Mapped[datetime]
+    choices: Mapped[list['Choice']] = relationship()
 
 
 class Choice(models.Model):
