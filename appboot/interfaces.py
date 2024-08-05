@@ -81,7 +81,7 @@ class BaseRepository(Protocol[T]):
     async def first(self) -> Optional[T]:
         ...
 
-    async def get(self, pk: int) -> T:
+    async def get(self, pk: Any) -> T:
         ...
 
     async def flush(self, objects: Optional[Sequence[Any]] = None) -> None:

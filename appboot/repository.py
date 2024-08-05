@@ -16,7 +16,6 @@ from appboot.interfaces import BaseRepository
 
 if typing.TYPE_CHECKING:
     from appboot.models import Model  # noqa
-    from appboot.schema import Schema
 
 ModelT = typing.TypeVar('ModelT', bound='Model')
 
@@ -224,14 +223,6 @@ class Repository(BaseRepository[ModelT], Generic[ModelT]):
         if not obj:
             raise DoesNotExist(f'{self.model.__name__} Not Exist')
         return obj
-
-    def _model_dump_for_write(self, obj: Schema | dict[str, Any]) -> dict[str, Any]:
-        if isinstance(obj, dict):
-            return obj
-        read_only_fields = set(c.name for c in self.primary_key)
-        if hasattr(obj, 'Meta') and hasattr(obj.Meta, 'read_only_fields'):
-            read_only_fields |= set(obj.Meta.read_only_fields)
-        return obj.dict(exclude=read_only_fields, exclude_unset=True)
 
     async def flush(self, objects: Optional[Sequence[Any]] = None) -> None:
         return await self.session.flush(objects)

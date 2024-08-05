@@ -20,7 +20,7 @@ from appboot.exceptions import DatabaseError
 
 
 class EngineManager:
-    def __init__(self, settings: DataBases | None = None):
+    def __init__(self, settings: typing.Optional[DataBases] = None):
         self._settings = settings
         self._connections: dict[str, AsyncEngine] = {}
         self.slave_router = self.round_robin()
