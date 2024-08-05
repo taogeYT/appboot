@@ -80,3 +80,8 @@ class Model(TableNameMixin, Base):
     ):
         await ScopedSession().refresh(self, attribute_names, with_for_update)
         return self
+
+    async def save(self):
+        session = ScopedSession()
+        session.add(self)
+        await session.flush()

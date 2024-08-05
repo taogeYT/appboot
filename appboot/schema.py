@@ -169,7 +169,6 @@ class ModelSchema(Schema, metaclass=ModelSchemaMetaclass):
     async def create(self, **kwargs):
         kwargs.update(self.validated_data)
         instance = await self.Meta.model.objects.create(**kwargs)
-        await self.Meta.model.objects.flush([instance])
         return instance
 
     async def update(self, instance: Model, **values):
