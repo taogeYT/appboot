@@ -11,12 +11,14 @@ class QuestionQuerySchema(QuerySchema):
 
 
 class QuestionSchema(ModelSchema):
+    choices: Optional[list['ChoiceSchema']] = None
+
     class Meta:
         model = Question
-        fields = ('id', 'question_text', 'pub_date', 'created_at')
-        read_only_fields = ('id', 'created_at')
+        fields = ('id', 'question_text', 'pub_date')
 
 
 class ChoiceSchema(ModelSchema):
     class Meta:
         model = Choice
+        exclude = ('updated_at', 'created_at')
