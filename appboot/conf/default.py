@@ -5,24 +5,20 @@ import typing
 from appboot.conf.pydantic_settings import (
     BaseModel,
     BaseSettings,
+    Field,
 )
+
+DictConfig = dict[str, typing.Any]
 
 
 class EngineConfig(BaseModel):
     url: str
-    pool_size: int = 5
-    max_overflow: int = 10
-    pool_recycle: int = 3600
-    echo: bool = True
+    options: DictConfig = Field(
+        default_factory=dict, title='sqlalchemy engine kw param'
+    )
 
 
 DataBases = dict[str, EngineConfig]
-
-
-class FastAPIConfig(BaseModel):
-    root_path: str = ''
-    docs_url: typing.Optional[str] = '/docs'
-    redoc_url: typing.Optional[str] = '/redoc'
 
 
 class DefaultSettings(BaseSettings):
@@ -32,8 +28,7 @@ class DefaultSettings(BaseSettings):
     DATABASES: DataBases = DataBases(
         default=EngineConfig(url='sqlite+aiosqlite:///:memory:')
     )
-    FASTAPI_CONFIG: FastAPIConfig = FastAPIConfig()
-
+    FASTAPI: DictConfig = Field(default_factory=dict, title='fastapi app init param')
     ALLOWED_HOSTS: list[str] = ['*']
     ALLOW_METHODS: list[str] = ['*']
     ALLOW_HEADERS: list[str] = ['*']

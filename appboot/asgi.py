@@ -19,11 +19,10 @@ async def get_session():
 
 
 def get_fastapi_application():
-    app = FastAPI(
-        title=settings.PROJECT_NAME,
-        **settings.FASTAPI_CONFIG.dict(),
-        dependencies=[Depends(get_session)],
-    )
+    kw = dict(title=settings.PROJECT_NAME)
+    kw.update(settings.FASTAPI)
+    kw.update(dependencies=[Depends(get_session)])
+    app = FastAPI(**kw)
     app.add_middleware(
         CORSMiddleware,  # type: ignore[unused-ignore]
         allow_origins=settings.ALLOWED_HOSTS,
