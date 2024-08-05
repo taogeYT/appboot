@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from appboot.repository import Repository
 
 
-def construct_query_from_field(field: ModelField) -> fastapi_params:
+def construct_query_from_field(field: ModelField) -> fastapi_params.Query:
     return Query(
         field.field_info.default,
         default_factory=field.field_info.default_factory,
@@ -48,7 +48,7 @@ def get_query_dependency(schema_cls: type[Schema]):
 
     # Create a new signature for the dependency function
     dependency_func.__name__ = schema_cls.__name__
-    dependency_func.__signature__ = Signature(parameters=query_params)
+    dependency_func.__signature__ = Signature(parameters=query_params)  # type: ignore
     return dependency_func
 
 

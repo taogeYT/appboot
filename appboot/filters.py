@@ -52,7 +52,7 @@ class EqFieldInfo(QueryFieldInfo):
 
 
 def construct_field(
-    field_cls: type[FieldInfo],
+    field_cls: type[QueryFieldInfo],
     default: Any = PydanticUndefined,
     default_factory: Optional[Callable[[], Any]] = None,
     alias: Optional[str] = None,
@@ -441,8 +441,7 @@ def OrderingField(  # noqa
     decimal_places: Optional[int] = None,
     **kwargs: Any,
 ) -> Any:
-    return construct_field(
-        field_cls=OrderingFieldInfo,
+    return OrderingFieldInfo(
         default=default,
         default_factory=default_factory,
         alias=alias,
@@ -450,12 +449,12 @@ def OrderingField(  # noqa
         title=title,
         description=description,
         exclude=exclude,
-        gt=gt,
-        ge=ge,
-        lt=lt,
-        le=le,
         min_length=min_length,
         max_length=max_length,
+        gt=gt,
+        lt=lt,
+        ge=ge,
+        le=le,
         multiple_of=multiple_of,
         allow_inf_nan=allow_inf_nan,
         max_digits=max_digits,
