@@ -1,8 +1,8 @@
-from appboot.apps import BaseAppConfig, BaseSettings
+from appboot.apps import BaseAppConfig
 
 
 class {{ camel_case_app_name }}Config(BaseAppConfig):
-    class Config(BaseSettings.Config):
+    class Config(BaseAppConfig.Config):
         env_prefix = '{{ app_name }}_'
 
     name: str = '{{ app_name }}'

@@ -43,10 +43,10 @@ class EngineManager:
 
     def create_engine(self, alias: str) -> AsyncEngine:
         config: EngineConfig = self.settings[alias]
+        config.options.update(future=True)
         return create_async_engine(
-            url=str(config.url),
-            future=True,
-            **config.dict(exclude={'url'}, exclude_unset=True),
+            url=config.url,
+            **config.options,
         )
 
     def __getitem__(self, alias) -> AsyncEngine:
