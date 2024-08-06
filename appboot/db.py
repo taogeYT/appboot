@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase, Session
 
 from appboot.conf import settings as appboot_settings
-from appboot.conf.default import DataBases, EngineConfig
+from appboot.conf.default import DataBases
 from appboot.exceptions import DatabaseError
 
 
@@ -42,12 +42,12 @@ class EngineManager:
         return self['default']
 
     def create_engine(self, alias: str) -> AsyncEngine:
-        config: EngineConfig = self.settings[alias]
-        config.options.update(future=True)
-        return create_async_engine(
-            url=config.url,
-            **config.options,
-        )
+        config = self.settings[alias].copy()
+        if 'url' not in config:
+            raise DatabaseError("database config missing 'url' key.")
+        url = config.pop('url')
+        config.update(future=True)
+        return create_async_engine(url=url, **config)
 
     def __getitem__(self, alias) -> AsyncEngine:
         if alias not in self.settings:
