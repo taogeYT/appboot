@@ -23,11 +23,13 @@ ENVIRONMENT_VARIABLE = 'APP_BOOT_SETTINGS_MODULE'
 
 
 def _parse_field_from_mod(mod, attrs):
-    attrs.update({name: getattr(mod, name) for name in mod.__annotations__})
+    values = {name: getattr(mod, name) for name in mod.__annotations__}
+    attrs.update(values)
     if '__annotations__' in attrs:
         attrs['__annotations__'].update(mod.__annotations__)
     else:
         attrs['__annotations__'] = mod.__annotations__
+    return values
 
 
 class BaseSettingsMetaclass(ModelMetaclass):
@@ -67,9 +69,9 @@ class LazySettings:
             if not settings_module:
                 raise ValueError('settings_module not configured')
             mod = importlib.import_module(settings_module)
-            _parse_field_from_mod(mod, namespace)
+            values = _parse_field_from_mod(mod, namespace)
             settings_class = type('Settings', (DefaultSettings,), namespace)
-            self._wrapped = settings_class()
+            self._wrapped = settings_class(**values)
         val = getattr(self._wrapped, name)
         self.__dict__[name] = val
         return val
