@@ -1,11 +1,11 @@
-from appboot.apps import BaseAppConfig, BaseSettings
+from appboot.apps import BaseAppConfig
 
 
 class PollsConfig(BaseAppConfig):
-    class Config(BaseSettings.Config):
-        env_prefix = 'polls_'
-
     name: str = 'polls'
+
+    class Config:
+        env_prefix = 'polls_'
 
 
 config = PollsConfig()
