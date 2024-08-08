@@ -1,0 +1,7 @@
+site_name: AppBoot
+site_url: 'https://taogeYT.github.io/appboot/'
+site_description: A FastAPI template like Django
+repo_name: taogeYT/appboot
+repo_url: https://github.com/taogeYT/appboot
+theme:
+  name: 'material'
