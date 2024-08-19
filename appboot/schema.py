@@ -49,8 +49,16 @@ def _parse_field_from_sqlalchemy_model(
             python_type = typing.Optional[column_property.type.python_type]
             default = None
         else:
-            python_type = column_property.type.python_type
-            default = ...
+            if column_property.default:
+                if column_property.default.is_scalar:
+                    python_type = column_property.type.python_type
+                    default = column_property.default.arg
+                else:
+                    python_type = typing.Optional[column_property.type.python_type]
+                    default = None
+            else:
+                python_type = column_property.type.python_type
+                default = ...
         __annotations__[column_property.name] = python_type
         __dict__[column_property.name] = Field(
             default,
