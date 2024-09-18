@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import typing
 from inspect import Parameter, Signature
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
@@ -66,6 +67,11 @@ def QueryDepends(  # noqa
     return _QueryDepends(dependency, use_cache=use_cache)
 
 
-class QuerySchema(BaseFilter, PagePagination):
+class QuerySchema(BaseFilter):
+    async def query_result(self, repository: Repository) -> typing.Sequence[Any]:
+        return await self.filter_repository(repository).all()
+
+
+class PaginationQuerySchema(QuerySchema, PagePagination):
     async def query_result(self, repository: Repository) -> PaginationResult:
         return await self.paginate(self.filter_repository(repository))
