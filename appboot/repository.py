@@ -279,12 +279,16 @@ class QuerySet(Generic[ModelT]):
         self._query = AsyncQuery(self._model, session.sync_session)
         self._step = 1
 
+    def options(self, *args):
+        self._query = self._query.options(*args)
+        return self
+
     def filter(self, *criterion):
         self._query = self._query.filter(*criterion)
         return self
 
-    def filter_by(self, *criterion):
-        self._query = self._query.filter(*criterion)
+    def filter_by(self, **kwargs):
+        self._query = self._query.filter_by(**kwargs)
         return self
 
     def order_by(self, __first, *clauses):
@@ -312,13 +316,13 @@ class QuerySet(Generic[ModelT]):
 
     async def create(self, **kwargs) -> ModelT:
         instance = self._model(**kwargs)
-        self._query.session.add(self._model)
+        self._query.session.add(instance)
         await self._session.flush([instance])
         await self._session.refresh(instance)
         return instance
 
     async def get_or_create(self, **kwargs) -> ModelT:
-        instance = await self.filter_by(kwargs).first()
+        instance = await self.filter_by(**kwargs).first()
         if instance is None:
             instance = await self.create(**kwargs)
         return instance
@@ -367,9 +371,8 @@ class QuerySet(Generic[ModelT]):
                 stop = None
             self._query = self._query.slice(start, stop)
             self._step = k.step
-            return self
-
-        self._query = self._query.slice(k, k + 1)
+            return self.all()
+        self._query.slice(k, k + 1)
         return self._query.async_one()
 
     def __aiter__(self):

@@ -184,5 +184,5 @@ class ModelSchema(Schema, metaclass=ModelSchemaMetaclass):
         for name, value in values.items():
             if hasattr(instance, name) and getattr(instance, name) != value:
                 setattr(instance, name, value)
-        await self.Meta.model.objects.flush([instance])
+        await instance.save()
         return instance

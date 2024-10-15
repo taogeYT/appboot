@@ -12,8 +12,7 @@ from typing_extensions import Self
 from appboot import timezone
 from appboot.conf import settings
 from appboot.db import Base, ScopedSession
-from appboot.interfaces import BaseRepository
-from appboot.repository import Repository
+from appboot.repository import QuerySet, QuerySetProperty
 from appboot.utils import camel_to_snake
 
 ModelT = TypeVar('ModelT', bound='Model')
@@ -58,7 +57,9 @@ class DeletedAtMixin:
 class Model(TableNameMixin, Base):
     __abstract__ = True
     id: Mapped[int] = mapped_column(primary_key=True)
-    objects: typing.ClassVar[BaseRepository[Self]] = Repository()
+    # objects: typing.ClassVar[BaseRepository[Self]] = Repository()
+    objects: typing.ClassVar[QuerySet[Self]] = QuerySetProperty(ScopedSession)
+    query: typing.ClassVar[QuerySet[Self]] = QuerySetProperty(ScopedSession)
 
     async def update(self, **values: dict[str, typing.Any]):
         for name, value in values.items():
