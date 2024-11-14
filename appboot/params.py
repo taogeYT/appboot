@@ -14,7 +14,7 @@ from appboot.pagination import PagePagination, PaginationResult
 from appboot.schema import Schema
 
 if TYPE_CHECKING:
-    from appboot.repository import Repository
+    from appboot.repository import QuerySet
 
 
 def construct_query_from_field(field: ModelField) -> fastapi_params.Query:
@@ -68,10 +68,10 @@ def QueryDepends(  # noqa
 
 
 class QuerySchema(BaseFilter):
-    async def query_result(self, repository: Repository) -> typing.Sequence[Any]:
+    async def query_result(self, repository: QuerySet) -> typing.Sequence[Any]:
         return await self.filter_repository(repository).all()
 
 
 class PaginationQuerySchema(QuerySchema, PagePagination):
-    async def query_result(self, repository: Repository) -> PaginationResult:
+    async def query_result(self, repository: QuerySet) -> PaginationResult:
         return await self.paginate(self.filter_repository(repository))
