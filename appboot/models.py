@@ -53,6 +53,10 @@ class DeletedAtMixin:
     def __delete_value__(cls) -> dict[str, typing.Any]:
         return {'deleted_at': timezone.now()}
 
+    async def delete(self):
+        self.deleted_at = timezone.now()
+        return self
+
 
 class Model(TableNameMixin, Base):
     __abstract__ = True
@@ -65,14 +69,6 @@ class Model(TableNameMixin, Base):
         for name, value in values.items():
             if hasattr(self, name) and getattr(self, name) != value:
                 setattr(self, name, value)
-
-    async def delete(self):
-        if hasattr(self.__class__, '__delete_value__'):
-            values = self.__class__.__delete_value__()
-            await self.update(**values)
-        else:
-            await ScopedSession().delete(self)
-        return self
 
     async def refresh(
         self,
