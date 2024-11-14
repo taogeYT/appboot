@@ -279,6 +279,10 @@ class QuerySet(Generic[ModelT]):
         self._query = AsyncQuery(self._model, session.sync_session)
         self._step = 1
 
+    @property
+    def model(self) -> type[ModelT]:
+        return self._model
+
     def options(self, *args):
         self._query = self._query.options(*args)
         return self
@@ -299,6 +303,14 @@ class QuerySet(Generic[ModelT]):
         self._query = self._query.distinct(*columns)
         return self
 
+    def limit(self, num: int):
+        self._query = self._query.limit(num)
+        return self
+
+    def offset(self, num: int):
+        self._query = self._query.offset(num)
+        return self
+
     async def all(self):
         return await self._query.async_all()
 
@@ -309,13 +321,16 @@ class QuerySet(Generic[ModelT]):
         return await self._query.async_count()
 
     async def get(self, **kwargs):
-        result = await self._query.async_get(kwargs)
+        result = await self.filter_by(**kwargs).first()
         if result is None:
             raise DoesNotExist(f'{self._model.__name__} Not Exist')
         return result
 
     async def create(self, **kwargs) -> ModelT:
-        instance = self._model(**kwargs)
+        # todo 支持关联关系一同创建
+        instance = self._model(
+            **{k: v for k, v in kwargs.items() if k in self.model.__mapper__.columns}
+        )
         self._query.session.add(instance)
         await self._session.flush([instance])
         await self._session.refresh(instance)
