@@ -1,11 +1,11 @@
 # Register your schema here.
 from typing import Optional
 
-from appboot import ModelSchema, QuerySchema, filters
+from appboot import ModelSchema, PaginationQuerySchema, filters
 from polls.models import Choice, Question
 
 
-class QuestionQuerySchema(QuerySchema):
+class QuestionQuerySchema(PaginationQuerySchema):
     ids: Optional[list[int]] = filters.EqField(alias='pk', columns='id')
     question_text: Optional[str] = filters.ContainsField()
 
