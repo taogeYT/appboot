@@ -19,9 +19,7 @@ async def create_question(question: QuestionSchema):
 
 @router.get('/questions/', response_model=PaginationResult[QuestionSchema])
 async def query_questions(query: QuestionQuerySchema = QueryDepends()):
-    return await query.query_result(
-        Question.objects.options(joinedload(Question.choices))
-    )
+    return await Question.objects.options(joinedload(Question.choices)).paginate(query)
 
 
 @router.get('/questions/{pk}', response_model=QuestionSchema)
