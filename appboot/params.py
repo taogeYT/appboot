@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import typing
 from inspect import Parameter, Signature
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import Any, Callable, Optional
 
 from fastapi import Query
 from fastapi import params as fastapi_params
@@ -10,11 +9,8 @@ from pydantic.fields import FieldInfo  # noqa
 
 from appboot._compat import ModelField, get_schema_fields
 from appboot.filters import BaseFilter
-from appboot.pagination import PagePagination, PaginationResult
+from appboot.pagination import PagePagination
 from appboot.schema import Schema
-
-if TYPE_CHECKING:
-    from appboot.repository import QuerySet
 
 
 def construct_query_from_field(field: ModelField) -> fastapi_params.Query:
@@ -68,10 +64,8 @@ def QueryDepends(  # noqa
 
 
 class QuerySchema(BaseFilter):
-    async def query_result(self, repository: QuerySet) -> typing.Sequence[Any]:
-        return await self.filter_repository(repository).all()
+    pass
 
 
 class PaginationQuerySchema(QuerySchema, PagePagination):
-    async def query_result(self, repository: QuerySet) -> PaginationResult:
-        return await self.paginate(self.filter_repository(repository))
+    pass
