@@ -38,7 +38,7 @@ async def create_user(user: UserSchema):
 
 @router.get('/users/', response_model=PaginationResult[UserSchema])
 async def query_users(query: QuerySchema = QueryDepends()):
-    return await query.query_result(User.objects.clone())
+    return await User.objects.filter_query(query).all()
 
 
 @router.post('/messages/', response_model=MessageSchema)
@@ -49,4 +49,8 @@ async def create_message(data: MessageSchema, user_id: int = Depends(get_current
 
 @router.get('/messages/', response_model=PaginationResult[MessageSchema])
 async def query_messages(query: QuerySchema = QueryDepends()):
-    return await query.query_result(Message.objects.options(joinedload(Message.user)))
+    return (
+        await Message.objects.options(joinedload(Message.user))
+        .filter_query(query)
+        .all()
+    )
