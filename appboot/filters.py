@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import typing
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Optional
 
 from pydantic.fields import FieldInfo  # noqa
 from sqlalchemy import and_, asc, desc
@@ -26,7 +26,7 @@ __all__ = (
 
 
 def equal_construct_condition(model, name, value):
-    if isinstance(value, Iterable):
+    if isinstance(value, (list, tuple)):
         return getattr(model, name).in_(value)
     return getattr(model, name) == value
 
