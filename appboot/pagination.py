@@ -4,11 +4,7 @@ import typing
 
 from pydantic import Field
 
-from appboot.schema import Schema
-
-if typing.TYPE_CHECKING:
-    from appboot.repository import QuerySet
-
+from appboot.base import Schema
 
 T = typing.TypeVar('T')
 
@@ -27,10 +23,3 @@ class PagePagination(BasePage):
     @property
     def offset(self) -> int:
         return (self.page - 1) * self.page_size
-
-    async def paginate(self, repository: QuerySet):
-        count = await repository.count()
-        results = await repository.limit(self.page_size).offset(self.offset).all()
-        return PaginationResult(
-            count=count, results=results, page=self.page, page_size=self.page_size
-        )

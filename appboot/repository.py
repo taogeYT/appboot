@@ -13,9 +13,11 @@ from sqlalchemy.util import greenlet_spawn
 from appboot.db import ScopedSession
 from appboot.exceptions import DoesNotExist
 from appboot.interfaces import BaseRepository
+from appboot.pagination import PaginationResult
 
 if typing.TYPE_CHECKING:
     from appboot.models import Model  # noqa
+    from appboot.params import QuerySchema, PaginationQuerySchema
 
 ModelT = typing.TypeVar('ModelT', bound='Model')
 
@@ -310,6 +312,22 @@ class QuerySet(Generic[ModelT]):
     def offset(self, num: int):
         self._query = self._query.offset(num)
         return self
+
+    def filter_query(self, query: QuerySchema):
+        conditions = query.get_condition(self.model)
+        if ordering := query.get_ordering(self.model):
+            return self.order_by(*ordering).filter(conditions)
+        return self.filter(conditions)
+
+    async def _paginate(self, query: PaginationQuerySchema):
+        count = await self.count()
+        results = await self.limit(query.page_size).offset(query.offset).all()
+        return PaginationResult(
+            count=count, results=results, page=query.page, page_size=query.page_size
+        )
+
+    async def paginate(self, query: PaginationQuerySchema) -> PaginationResult[ModelT]:
+        return await self.filter_query(query)._paginate(query)
 
     async def all(self):
         return await self._query.async_all()
