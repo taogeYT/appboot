@@ -329,16 +329,16 @@ class QuerySet(Generic[ModelT]):
     async def paginate(self, query: PaginationQuerySchema) -> PaginationResult[ModelT]:
         return await self.filter_query(query)._paginate(query)
 
-    async def all(self):
+    async def all(self) -> list[ModelT]:
         return await self._query.async_all()
 
-    async def first(self):
+    async def first(self) -> Optional[ModelT]:
         return await self._query.async_first()
 
-    async def count(self):
+    async def count(self) -> int:
         return await self._query.async_count()
 
-    async def get(self, **kwargs):
+    async def get(self, **kwargs) -> ModelT:
         result = await self.filter_by(**kwargs).first()
         if result is None:
             raise DoesNotExist(f'{self._model.__name__} Not Exist')
@@ -365,10 +365,10 @@ class QuerySet(Generic[ModelT]):
         values: dict[str, Any],
         synchronize_session='auto',
         update_args: Optional[dict[Any, Any]] = None,
-    ):
+    ) -> int:
         return await self._query.async_update(values, synchronize_session, update_args)
 
-    async def delete(self):
+    async def delete(self) -> int:
         return await self._query.async_delete()
 
     async def values(self, *columns):
