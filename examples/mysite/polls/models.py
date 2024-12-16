@@ -7,13 +7,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from appboot import models
 
 
-class Question(models.DeletedAtMixin, models.TimestampMixin, models.Model):
+class Question(
+    models.DeletedAtMixin, models.TimestampMixin, models.TableNameMixin, models.Model
+):
     question_text: Mapped[str]
     pub_date: Mapped[datetime]
     choices: Mapped[list['Choice']] = relationship()
 
 
-class Choice(models.Model):
+class Choice(models.TableNameMixin, models.Model):
     question_id: Mapped[int] = mapped_column(Integer, ForeignKey('question.id'))
     choice_text: Mapped[str]
     votes: Mapped[int] = mapped_column(default=0)
