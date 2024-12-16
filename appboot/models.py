@@ -58,12 +58,10 @@ class DeletedAtMixin:
         return self
 
 
-class Model(TableNameMixin, Base):
+class Model(Base):
     __abstract__ = True
     id: Mapped[int] = mapped_column(primary_key=True)
-    # objects: typing.ClassVar[BaseRepository[Self]] = Repository()
-    objects: typing.ClassVar[QuerySet[Self]] = QuerySetProperty(ScopedSession)
-    query: typing.ClassVar[QuerySet[Self]] = QuerySetProperty(ScopedSession)
+    objects: typing.ClassVar[QuerySet[Self]] = QuerySetProperty(ScopedSession)  # type: ignore
 
     async def update(self, **values: dict[str, typing.Any]):
         for name, value in values.items():

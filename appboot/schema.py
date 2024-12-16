@@ -105,6 +105,11 @@ class BaseMeta:
 class ModelSchema(Schema, metaclass=ModelSchemaMetaclass):
     Meta: typing.ClassVar[type[BaseMeta]]
 
+    @classmethod
+    def construct_schema(cls, **kwargs):
+        fields = get_schema_fields(cls)
+        return cls(**{k: v for k, v in kwargs if k in fields})
+
     @property
     def validated_data(self):
         fields = get_schema_fields(self.__class__)
@@ -124,7 +129,7 @@ class ModelSchema(Schema, metaclass=ModelSchemaMetaclass):
     async def update(self, instance: Model, **values):
         values.update(self.validated_data)
         for name, value in values.items():
-            if hasattr(instance, name) and getattr(instance, name) != value:
+            if name in instance.__mapper__.columns and getattr(instance, name) != value:
                 setattr(instance, name, value)
         await instance.save()
         return instance
