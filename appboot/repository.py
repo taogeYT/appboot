@@ -354,11 +354,8 @@ class QuerySet(Generic[ModelT]):
         await self._session.refresh(instance)
         return instance
 
-    async def get_or_create(self, **kwargs) -> ModelT:
-        instance = await self.filter_by(**kwargs).first()
-        if instance is None:
-            instance = await self.create(**kwargs)
-        return instance
+    async def bulk_create(self, **kwargs):
+        raise NotImplementedError
 
     async def update(
         self,
