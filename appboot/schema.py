@@ -105,6 +105,11 @@ class BaseMeta:
 class ModelSchema(Schema, metaclass=ModelSchemaMetaclass):
     Meta: typing.ClassVar[type[BaseMeta]]
 
+    @classmethod
+    def construct_schema(cls, **kwargs):
+        fields = get_schema_fields(cls)
+        return cls(**{k: v for k, v in kwargs if k in fields})
+
     @property
     def validated_data(self):
         fields = get_schema_fields(self.__class__)
