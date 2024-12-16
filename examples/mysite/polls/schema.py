@@ -7,7 +7,7 @@ from polls.models import Choice, Question
 
 class QuestionQuerySchema(PaginationQuerySchema):
     ids: Optional[list[int]] = filters.EqField(None, alias='pk', columns='id')
-    question_text: Optional[str] = filters.ContainsField(default_factory=lambda: 'haha')
+    question_text: Optional[str] = filters.ContainsField(None)
 
 
 class QuestionSchema(ModelSchema):

@@ -129,7 +129,7 @@ class ModelSchema(Schema, metaclass=ModelSchemaMetaclass):
     async def update(self, instance: Model, **values):
         values.update(self.validated_data)
         for name, value in values.items():
-            if hasattr(instance, name) and getattr(instance, name) != value:
+            if name in instance.__mapper__.columns and getattr(instance, name) != value:
                 setattr(instance, name, value)
         await instance.save()
         return instance
