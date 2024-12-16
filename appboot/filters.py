@@ -46,11 +46,6 @@ class QueryFieldInfo(BaseFieldInfo):
         setattr(self, '_columns', value)
 
 
-class EqFieldInfo(QueryFieldInfo):
-    def construct_expression(self, model, columns, value):
-        return equal_construct_condition(model, columns[0], value)
-
-
 def construct_field(
     field_cls: type[QueryFieldInfo],
     default: Any = PydanticUndefined,
@@ -97,8 +92,13 @@ def construct_field(
     return field
 
 
+class EqFieldInfo(QueryFieldInfo):
+    def construct_expression(self, model, columns, value):
+        return equal_construct_condition(model, columns[0], value)
+
+
 def EqField(  # noqa
-    default: Optional[Any] = None,
+    default: Any = PydanticUndefined,
     *,
     default_factory: Optional[Callable[[], Any]] = None,
     alias: Optional[str] = None,
@@ -149,7 +149,7 @@ class GtFieldInfo(QueryFieldInfo):
 
 
 def GtField(  # noqa
-    default: Optional[Any] = None,
+    default: Any = PydanticUndefined,
     *,
     default_factory: Optional[Callable[[], Any]] = None,
     alias: Optional[str] = None,
@@ -200,7 +200,7 @@ class GeFieldInfo(QueryFieldInfo):
 
 
 def GeField(  # noqa
-    default: Optional[Any] = None,
+    default: Any = PydanticUndefined,
     *,
     default_factory: Optional[Callable[[], Any]] = None,
     alias: Optional[str] = None,
@@ -251,7 +251,7 @@ class LtFieldInfo(QueryFieldInfo):
 
 
 def LtField(  # noqa
-    default: Optional[Any] = None,
+    default: Any = PydanticUndefined,
     *,
     default_factory: Optional[Callable[[], Any]] = None,
     alias: Optional[str] = None,
@@ -302,7 +302,7 @@ class LeFieldInfo(QueryFieldInfo):
 
 
 def LeField(  # noqa
-    default: Optional[Any] = None,
+    default: Any = PydanticUndefined,
     *,
     default_factory: Optional[Callable[[], Any]] = None,
     alias: Optional[str] = None,
@@ -353,7 +353,7 @@ class ContainsFieldInfo(QueryFieldInfo):
 
 
 def ContainsField(  # noqa
-    default: Optional[Any] = None,
+    default: Any = PydanticUndefined,
     *,
     default_factory: Optional[Callable[[], Any]] = None,
     alias: Optional[str] = None,

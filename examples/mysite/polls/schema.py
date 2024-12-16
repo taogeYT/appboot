@@ -6,8 +6,8 @@ from polls.models import Choice, Question
 
 
 class QuestionQuerySchema(PaginationQuerySchema):
-    ids: Optional[list[int]] = filters.EqField(alias='pk', columns='id')
-    question_text: Optional[str] = filters.ContainsField()
+    ids: Optional[list[int]] = filters.EqField(None, alias='pk', columns='id')
+    question_text: Optional[str] = filters.ContainsField(default_factory=lambda: 'haha')
 
 
 class QuestionSchema(ModelSchema):
