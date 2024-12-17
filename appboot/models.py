@@ -12,7 +12,7 @@ from typing_extensions import Self
 from appboot import timezone
 from appboot.conf import settings
 from appboot.db import Base, ScopedSession
-from appboot.repository import QuerySet, QuerySetProperty
+from appboot.repository import QuerySet, QuerySetProperty, SoftDeleteQuerySet
 from appboot.utils import camel_to_snake
 
 ModelT = TypeVar('ModelT', bound='Model')
@@ -40,18 +40,10 @@ class OperatorMixin:
 
 
 class DeletedAtMixin:
+    query_set_class = SoftDeleteQuerySet
     deleted_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), default=None
     )
-
-    # @declared_attr.directive  # noqa
-    @classmethod
-    def __delete_condition__(cls):
-        return cls.deleted_at.is_(None)
-
-    @classmethod
-    def __delete_value__(cls) -> dict[str, typing.Any]:
-        return {'deleted_at': timezone.now()}
 
     async def delete(self):
         self.deleted_at = timezone.now()

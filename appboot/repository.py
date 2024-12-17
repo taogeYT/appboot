@@ -3,10 +3,12 @@ from __future__ import annotations
 import typing
 from typing import Any, Generic, Optional
 
+from sqlalchemy import insert
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import Query
 from sqlalchemy.util import greenlet_spawn
 
+from appboot import timezone
 from appboot.exceptions import DoesNotExist
 from appboot.pagination import PaginationResult
 
@@ -151,8 +153,10 @@ class QuerySet(Generic[ModelT]):
         await self._session.refresh(instance)
         return instance
 
-    async def bulk_create(self, **kwargs):
-        raise NotImplementedError
+    async def bulk_create(self, records: list[dict[str, Any]]):
+        stmt = insert(self.model).values(records)
+        result = await self._session.execute(stmt)
+        return result.rowcount
 
     async def update(
         self,
@@ -209,3 +213,12 @@ class QuerySet(Generic[ModelT]):
                 yield item
 
         return generator(self._step)
+
+
+class SoftDeleteQuerySet(QuerySet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._query = self._query.filter_by(deleted_at=None)
+
+    async def delete(self) -> int:
+        return await self.update({'deleted_at': timezone.now()})
