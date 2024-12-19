@@ -128,7 +128,9 @@ class QuerySet(Generic[ModelT]):
             count=count, results=results, page=query.page, page_size=query.page_size
         )
 
-    async def paginate(self, query: PaginationQuerySchema, must_count: bool = True) -> PaginationResult[ModelT]:
+    async def paginate(
+        self, query: PaginationQuerySchema, must_count: bool = True
+    ) -> PaginationResult[ModelT]:
         return await self.filter_query(query)._paginate(query, must_count)
 
     async def all(self) -> list[ModelT]:
@@ -147,10 +149,7 @@ class QuerySet(Generic[ModelT]):
         return result
 
     async def create(self, **kwargs) -> ModelT:
-        # todo 支持关联关系一同创建
-        instance = self._model(
-            **{k: v for k, v in kwargs.items() if k in self.model.__mapper__.columns}
-        )
+        instance = self._model.construct(**kwargs)
         self._query.session.add(instance)
         await self._session.flush([instance])
         await self._session.refresh(instance)

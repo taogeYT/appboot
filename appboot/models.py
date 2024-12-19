@@ -55,6 +55,10 @@ class Model(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     objects: typing.ClassVar[QuerySet[Self]] = QuerySetProperty(ScopedSession)  # type: ignore
 
+    @classmethod
+    def construct(cls, **kwargs: dict[str, typing.Any]) -> Self:
+        return _parse_data_to_model(cls, kwargs)
+
     async def update(self, **values: dict[str, typing.Any]):
         for name, value in values.items():
             if hasattr(self, name) and getattr(self, name) != value:
@@ -72,3 +76,23 @@ class Model(Base):
         session = ScopedSession()
         session.add(self)
         await session.flush()
+
+
+def _parse_data_to_model(model: type[Base], data: dict[str, typing.Any]):
+    _data = {}
+    for key, column in model.__mapper__.columns.items():
+        if key not in data or column.primary_key:
+            continue
+        _data[key] = data[key]
+    for key, rel in model.__mapper__.relationships.items():
+        if key not in data:
+            continue
+        sub_model = rel.mapper.class_
+        if rel.uselist:
+            rel_result = [
+                _parse_data_to_model(sub_model, sub_data) for sub_data in data[key]
+            ]
+        else:
+            rel_result = _parse_data_to_model(sub_model, data[key])
+        _data[key] = rel_result
+    return model(**_data)
