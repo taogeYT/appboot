@@ -39,8 +39,8 @@ class DatabaseError(Error):
 
 
 class DoesNotExist(DatabaseError):
-    code = 404
+    pass
 
 
 class NotSupportedError(DatabaseError):
-    code = 405
+    pass
