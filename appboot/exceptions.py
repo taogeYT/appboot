@@ -1,38 +1,46 @@
-from fastapi import Request
-from fastapi.responses import JSONResponse
-
-
-class ExceptionHandler:
-    def __init__(self, request: Request, exc: Exception):
-        self.request = request
-        self.exc = exc
-
-    async def make_response(self):
-        status_code = 500
-        if isinstance(self.exc, Error):
-            status_code = 400
-        return JSONResponse({'detail': str(self.exc)}, status_code=status_code)
-
-
 class Error(Exception):
-    pass
+    code = 500
+
+
+class NotFound(Error):
+    code = 404
+
+
+class BadRequest(Error):
+    code = 400
+
+
+class Unauthorized(Error):
+    code = 401
+
+
+class Forbidden(Error):
+    code = 403
+
+
+class Conflict(Error):
+    code = 409
+
+
+class Unavailable(Error):
+    code = 422
 
 
 class FilterError(Error):
-    pass
+    code = 500
 
 
 class InterfaceError(Error):
-    pass
+    code = 500
 
 
 class DatabaseError(Error):
-    pass
+    code = 400
 
 
 class DoesNotExist(DatabaseError):
-    pass
+    code = 404
 
 
 class NotSupportedError(DatabaseError):
-    pass
+    code = 405
