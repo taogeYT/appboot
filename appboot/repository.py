@@ -118,15 +118,18 @@ class QuerySet(Generic[ModelT]):
             return self.order_by(*ordering).filter(conditions)
         return self.filter(conditions)
 
-    async def _paginate(self, query: PaginationQuerySchema):
-        count = await self.count()
+    async def _paginate(self, query: PaginationQuerySchema, must_count: bool = True):
+        if must_count:
+            count = await self.count()
+        else:
+            count = 0
         results = await self.limit(query.page_size).offset(query.offset).all()
         return PaginationResult(
             count=count, results=results, page=query.page, page_size=query.page_size
         )
 
-    async def paginate(self, query: PaginationQuerySchema) -> PaginationResult[ModelT]:
-        return await self.filter_query(query)._paginate(query)
+    async def paginate(self, query: PaginationQuerySchema, must_count: bool = True) -> PaginationResult[ModelT]:
+        return await self.filter_query(query)._paginate(query, must_count)
 
     async def all(self) -> list[ModelT]:
         return await self._query.async_all()
