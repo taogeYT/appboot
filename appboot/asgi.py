@@ -2,11 +2,10 @@ import importlib
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 from appboot.conf import settings
 from appboot.db import transaction
-from appboot.exceptions import Error
+from appboot.exceptions import ExceptionHandler
 
 
 def get_asgi_application():
@@ -33,14 +32,10 @@ def get_fastapi_application():
     return app
 
 
-def fastapi_register_exception(app: FastAPI):
-    @app.exception_handler(Error)
-    async def app_error_handler(request: Request, exc: Error):
-        return JSONResponse({'detail': str(exc)}, status_code=400)
-
+def fastapi_register_exception(app: FastAPI, handler=ExceptionHandler):
     @app.exception_handler(Exception)
     async def app_exception_handler(request: Request, exc: Exception):
-        return JSONResponse({'detail': str(exc)}, status_code=500)
+        return await handler(request, exc).make_response()
 
 
 def fastapi_register_routers(app: FastAPI):
