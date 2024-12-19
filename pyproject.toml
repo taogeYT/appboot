@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "appboot"
-version = "0.2.8"
+version = "0.2.9"
 description = "Use FastAPI like Django"
 authors = ["liyatao <liyatao001@gmail.com>"]
 readme = "README.md"
@@ -39,7 +39,6 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 appboot = 'appboot.commands:app'
 
-
 [tool.ruff]
 line-length = 88
 target-version = 'py39'
@@ -54,7 +53,6 @@ known-third-party = ["fastapi", "pydantic", "sqlalchemy"]
 
 [tool.ruff.format]
 quote-style = "single"
-
 
 [tool.mypy]
 python_version = "3.9"
