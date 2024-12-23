@@ -13,7 +13,7 @@ from typing_extensions import Self
 from appboot import timezone
 from appboot.conf import settings
 from appboot.db import Base, ScopedSession
-from appboot.repository import QuerySet, QuerySetProperty, SoftDeleteQuerySet
+from appboot.repository import AsyncQuerySet, QuerySetProperty, SoftDeleteAsyncQuerySet
 from appboot.utils import camel_to_snake
 
 ModelT = TypeVar('ModelT', bound='Model')
@@ -42,20 +42,19 @@ class OperatorMixin:
 
 
 class DeletedAtMixin:
-    query_set_class = SoftDeleteQuerySet
+    query_set_class = SoftDeleteAsyncQuerySet
     deleted_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), default=None
     )
 
     async def delete(self):
         self.deleted_at = timezone.now()
-        return self
 
 
 class Model(Base):
     __abstract__ = True
     id: Mapped[int] = mapped_column(primary_key=True)
-    objects: typing.ClassVar[QuerySet[Self]] = QuerySetProperty(ScopedSession)  # type: ignore
+    objects: typing.ClassVar[AsyncQuerySet[Self]] = QuerySetProperty(ScopedSession)  # type: ignore
 
     @classmethod
     def construct(cls, **kwargs: dict[str, typing.Any]) -> Self:
@@ -72,11 +71,15 @@ class Model(Base):
         with_for_update: ForUpdateParameter = None,
     ):
         await ScopedSession().refresh(self, attribute_names, with_for_update)
-        return self
 
     async def save(self):
         session = ScopedSession()
         session.add(self)
+        await session.flush()
+
+    async def delete(self):
+        session = ScopedSession()
+        await session.delete(self)
         await session.flush()
 
 

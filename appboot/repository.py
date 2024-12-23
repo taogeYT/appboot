@@ -67,13 +67,13 @@ class QuerySetProperty:
     def __init__(self, session_factory):
         self.session_factory = session_factory
 
-    def __get__(self, obj: Model | None, cls: type[Model]) -> QuerySet:
-        return getattr(cls, 'query_set_class', QuerySet)(
+    def __get__(self, obj: Model | None, cls: type[Model]) -> AsyncQuerySet:
+        return getattr(cls, 'query_set_class', AsyncQuerySet)(
             model=cls, session=self.session_factory()
         )
 
 
-class QuerySet(Generic[ModelT]):
+class AsyncQuerySet(Generic[ModelT]):
     def __init__(self, model: type[ModelT], session: AsyncSession):
         self._model = model
         self._session = session
@@ -217,7 +217,7 @@ class QuerySet(Generic[ModelT]):
         return generator(self._step)
 
 
-class SoftDeleteQuerySet(QuerySet):
+class SoftDeleteAsyncQuerySet(AsyncQuerySet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._query = self._query.filter_by(deleted_at=None)
