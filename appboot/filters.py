@@ -11,7 +11,7 @@ from appboot.exceptions import FilterError
 from appboot.schema import Schema
 
 if typing.TYPE_CHECKING:
-    from appboot.repository import QuerySet
+    from appboot.repository import AsyncQuerySet
 
 
 __all__ = (
@@ -464,7 +464,7 @@ def OrderingField(  # noqa
 
 
 class BaseFilter(Schema):
-    def filter_repository(self, query_set: QuerySet) -> QuerySet:
+    def filter_repository(self, query_set: AsyncQuerySet) -> AsyncQuerySet:
         conditions = self.get_condition(query_set.model)
         if ordering := self.get_ordering(query_set.model):
             return query_set.order_by(*ordering).filter(conditions)

@@ -4,7 +4,8 @@ import typing
 from datetime import datetime
 from typing import Optional, TypeVar
 
-from sqlalchemy import DateTime, func
+from pydantic import BaseModel
+from sqlalchemy import JSON, DateTime, TypeDecorator, func
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 from sqlalchemy.sql.selectable import ForUpdateParameter
 from typing_extensions import Self
@@ -12,10 +13,11 @@ from typing_extensions import Self
 from appboot import timezone
 from appboot.conf import settings
 from appboot.db import Base, ScopedSession
-from appboot.repository import QuerySet, QuerySetProperty, SoftDeleteQuerySet
+from appboot.repository import AsyncQuerySet, QuerySetProperty, SoftDeleteAsyncQuerySet
 from appboot.utils import camel_to_snake
 
 ModelT = TypeVar('ModelT', bound='Model')
+PydanticModel = TypeVar('PydanticModel', bound=BaseModel)
 
 
 class TableNameMixin:
@@ -40,20 +42,19 @@ class OperatorMixin:
 
 
 class DeletedAtMixin:
-    query_set_class = SoftDeleteQuerySet
+    query_set_class = SoftDeleteAsyncQuerySet
     deleted_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), default=None
     )
 
     async def delete(self):
         self.deleted_at = timezone.now()
-        return self
 
 
 class Model(Base):
     __abstract__ = True
     id: Mapped[int] = mapped_column(primary_key=True)
-    objects: typing.ClassVar[QuerySet[Self]] = QuerySetProperty(ScopedSession)  # type: ignore
+    objects: typing.ClassVar[AsyncQuerySet[Self]] = QuerySetProperty(ScopedSession)  # type: ignore
 
     @classmethod
     def construct(cls, **kwargs: dict[str, typing.Any]) -> Self:
@@ -70,11 +71,15 @@ class Model(Base):
         with_for_update: ForUpdateParameter = None,
     ):
         await ScopedSession().refresh(self, attribute_names, with_for_update)
-        return self
 
     async def save(self):
         session = ScopedSession()
         session.add(self)
+        await session.flush()
+
+    async def delete(self):
+        session = ScopedSession()
+        await session.delete(self)
         await session.flush()
 
 
@@ -96,3 +101,25 @@ def _parse_data_to_model(model: type[Base], data: dict[str, typing.Any]):
             rel_result = _parse_data_to_model(sub_model, data[key])
         _data[key] = rel_result
     return model(**_data)
+
+
+class PydanticType(TypeDecorator):
+    impl = JSON
+
+    def __init__(self, pydantic_type: type[PydanticModel], *args, **kwargs):
+        self.pydantic_type = pydantic_type
+        super().__init__(*args, **kwargs)
+
+    def process_bind_param(self, value, dialect):
+        if isinstance(value, self.pydantic_type):
+            return value.dict(exclude_unset=True)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            return self.pydantic_type.parse_obj(value)
+        return value
+
+    @property
+    def python_type(self):
+        return self.pydantic_type

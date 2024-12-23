@@ -4,7 +4,13 @@ from datetime import datetime
 from sqlalchemy import ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from appboot import models
+from appboot import Schema, models
+from appboot.models import PydanticType
+
+
+class Extra(Schema):
+    create_by: int
+    update_by: int
 
 
 class Question(
@@ -12,6 +18,7 @@ class Question(
 ):
     question_text: Mapped[str]
     pub_date: Mapped[datetime]
+    extra: Mapped[Extra] = mapped_column(PydanticType(Extra))
     choices: Mapped[list['Choice']] = relationship()
 
 

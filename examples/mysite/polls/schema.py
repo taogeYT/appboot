@@ -15,7 +15,7 @@ class QuestionSchema(ModelSchema):
 
     class Meta:
         model = Question
-        fields = ('id', 'question_text', 'pub_date')
+        fields = ('id', 'question_text', 'pub_date', 'extra')
 
 
 class ChoiceSchema(ModelSchema):

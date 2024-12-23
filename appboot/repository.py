@@ -5,8 +5,9 @@ from typing import Any, Generic, Optional
 
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio.session import AsyncSession
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import Query, Session
 from sqlalchemy.util import greenlet_spawn
+from typing_extensions import Self
 
 from appboot import timezone
 from appboot.exceptions import DoesNotExist
@@ -19,70 +20,68 @@ if typing.TYPE_CHECKING:
 ModelT = typing.TypeVar('ModelT', bound='Model')
 
 
-class AsyncQuery(Query):
-    async def async_get(self, pk: Any):
-        return await greenlet_spawn(super().get, pk)
-
-    async def async_count(self) -> int:
-        return await greenlet_spawn(super().count)
-
-    async def async_all(self):
-        return await greenlet_spawn(super().all)
-
-    async def async_first(self):
-        return await greenlet_spawn(super().first)
-
-    async def async_one_or_none(self):
-        return await greenlet_spawn(super().one_or_none)
-
-    async def async_one(self):
-        return await greenlet_spawn(super().one)
-
-    async def async_delete(self, synchronize_session='auto'):
-        return await greenlet_spawn(
-            super().delete, synchronize_session=synchronize_session
-        )
-
-    async def async_update(
-        self,
-        values: dict[str, Any],
-        synchronize_session='auto',
-        update_args: Optional[dict[Any, Any]] = None,
-    ):
-        return await greenlet_spawn(
-            super().update,
-            values=values,
-            synchronize_session=synchronize_session,
-            update_args=update_args,
-        )
-
-    async def async_values(self, *columns):
-        return await greenlet_spawn(super().values, *columns)
-
-    async def async_iter(self):
-        return await greenlet_spawn(super()._iter)
-
-
 class QuerySetProperty:
     def __init__(self, session_factory):
         self.session_factory = session_factory
 
-    def __get__(self, obj: Model | None, cls: type[Model]) -> QuerySet:
-        return getattr(cls, 'query_set_class', QuerySet)(
+    def __get__(self, obj: typing.Optional[Model], cls: type[Model]) -> AsyncQuerySet:
+        return getattr(cls, 'query_set_class', AsyncQuerySet)(
             model=cls, session=self.session_factory()
         )
 
 
-class QuerySet(Generic[ModelT]):
-    def __init__(self, model: type[ModelT], session: AsyncSession):
-        self._model = model
-        self._session = session
-        self._query = AsyncQuery(self._model, session.sync_session)
-        self._step = 1
+class QuerySet(Query, Generic[ModelT]):
+    def __init__(self, model: type[ModelT], session: Session):
+        self.model: type[ModelT] = model
+        self._step: int = 1
+        super().__init__(self.model, session)
 
-    @property
-    def model(self) -> type[ModelT]:
-        return self._model
+    def filter_query(self, query: QuerySchema) -> Self:
+        conditions = query.get_condition(self.model)
+        if ordering := query.get_ordering(self.model):
+            return self.order_by(*ordering).filter(conditions)
+        return self.filter(conditions)
+
+    def get_by(self, **kwargs) -> ModelT:
+        result = self.filter_by(**kwargs).first()
+        if result is None:
+            raise DoesNotExist(f'{self.model.__name__} Not Exist')
+        return result
+
+    def _paginate(self, query: PaginationQuerySchema, must_count: bool = True):
+        if must_count:
+            count = self.count()
+        else:
+            count = 0
+        results = self.limit(query.page_size).offset(query.offset).all()
+        return PaginationResult(
+            count=count, results=results, page=query.page, page_size=query.page_size
+        )
+
+    def paginate(
+        self, query: PaginationQuerySchema, must_count: bool = True
+    ) -> PaginationResult[ModelT]:
+        return self.filter_query(query)._paginate(query, must_count)
+
+    def create(self, **kwargs) -> ModelT:
+        instance = self.model.construct(**kwargs)
+        self.session.add(instance)
+        self.session.flush([instance])
+        self.session.refresh(instance)
+        return instance
+
+    def bulk_create(self, records: list[dict[str, Any]]):
+        stmt = insert(self.model).values(records)
+        result = self.session.execute(stmt)
+        return result.rowcount
+
+
+class AsyncQuerySet(Generic[ModelT]):
+    def __init__(self, model: type[ModelT], session: AsyncSession):
+        self.model: type[ModelT] = model
+        self._session = session
+        self._query = QuerySet(self.model, session.sync_session)
+        self._step = 1
 
     def options(self, *args):
         self._query = self._query.options(*args)
@@ -113,52 +112,36 @@ class QuerySet(Generic[ModelT]):
         return self
 
     def filter_query(self, query: QuerySchema):
-        conditions = query.get_condition(self.model)
-        if ordering := query.get_ordering(self.model):
-            return self.order_by(*ordering).filter(conditions)
-        return self.filter(conditions)
-
-    async def _paginate(self, query: PaginationQuerySchema, must_count: bool = True):
-        if must_count:
-            count = await self.count()
-        else:
-            count = 0
-        results = await self.limit(query.page_size).offset(query.offset).all()
-        return PaginationResult(
-            count=count, results=results, page=query.page, page_size=query.page_size
-        )
+        self._query = self._query.filter_query(query)
+        return self
 
     async def paginate(
         self, query: PaginationQuerySchema, must_count: bool = True
     ) -> PaginationResult[ModelT]:
-        return await self.filter_query(query)._paginate(query, must_count)
+        return await greenlet_spawn(
+            self._query.paginate, query=query, must_count=must_count
+        )
 
     async def all(self) -> list[ModelT]:
-        return await self._query.async_all()
+        return await greenlet_spawn(self._query.all)
 
     async def first(self) -> Optional[ModelT]:
-        return await self._query.async_first()
+        return await greenlet_spawn(self._query.first)
 
     async def count(self) -> int:
-        return await self._query.async_count()
+        return await greenlet_spawn(self._query.count)
 
     async def get(self, **kwargs) -> ModelT:
-        result = await self.filter_by(**kwargs).first()
-        if result is None:
-            raise DoesNotExist(f'{self._model.__name__} Not Exist')
-        return result
+        return await self.get_by(**kwargs)
+
+    async def get_by(self, **kwargs) -> ModelT:
+        return await greenlet_spawn(self._query.get_by, **kwargs)
 
     async def create(self, **kwargs) -> ModelT:
-        instance = self._model.construct(**kwargs)
-        self._query.session.add(instance)
-        await self._session.flush([instance])
-        await self._session.refresh(instance)
-        return instance
+        return await greenlet_spawn(self._query.create, **kwargs)
 
     async def bulk_create(self, records: list[dict[str, Any]]):
-        stmt = insert(self.model).values(records)
-        result = await self._session.execute(stmt)
-        return result.rowcount
+        return await greenlet_spawn(self._query.bulk_create, records=records)
 
     async def update(
         self,
@@ -166,16 +149,24 @@ class QuerySet(Generic[ModelT]):
         synchronize_session='auto',
         update_args: Optional[dict[Any, Any]] = None,
     ) -> int:
-        return await self._query.async_update(values, synchronize_session, update_args)
+        return await greenlet_spawn(
+            self._query.update,
+            values=values,
+            synchronize_session=synchronize_session,
+            update_args=update_args,
+        )
 
     async def delete(self) -> int:
-        return await self._query.async_delete()
+        return await greenlet_spawn(self._query.delete)
 
     async def values(self, *columns):
-        return await self._query.async_values(*columns)
+        return await greenlet_spawn(self._query.values, *columns)
 
-    async def iterator(self):
-        return await self._query.async_iter()
+    async def one(self):
+        return await greenlet_spawn(self._query.one)
+
+    async def _iter(self):
+        return await greenlet_spawn(self._query._iter)
 
     def __getitem__(self, k):
         """Retrieve an item or slice from the set of results."""
@@ -206,18 +197,18 @@ class QuerySet(Generic[ModelT]):
             self._step = k.step
             return self.all()
         self._query.slice(k, k + 1)
-        return self._query.async_one()
+        return self.one()
 
     def __aiter__(self):
         async def generator(step):
-            result = await self.iterator()
+            result = await self._iter()
             for item in result[::step]:
                 yield item
 
         return generator(self._step)
 
 
-class SoftDeleteQuerySet(QuerySet):
+class SoftDeleteAsyncQuerySet(AsyncQuerySet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._query = self._query.filter_by(deleted_at=None)

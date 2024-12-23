@@ -36,7 +36,8 @@ async def update_question(pk: int, question: QuestionSchema):
 @router.delete('/questions/{pk}', response_model=QuestionSchema)
 async def delete_question(pk: int):
     instance = await Question.objects.options(joinedload(Question.choices)).get(id=pk)
-    return await instance.delete()
+    await instance.delete()
+    return instance
 
 
 @router.post('/choices/', response_model=ChoiceSchema)
