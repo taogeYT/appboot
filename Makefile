@@ -11,8 +11,8 @@ sources = appboot examples
 
 .PHONY: install  ## Install the package, dependencies, and pre-commit for local development
 install: .poetry .pre-commit
-	poetry install
 	pre-commit install --install-hooks
+	poetry install
 
 .PHONY: format  ## Auto-format python source files
 format: .poetry
