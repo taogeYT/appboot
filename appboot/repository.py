@@ -208,7 +208,7 @@ class AsyncQuerySet(Generic[ModelT]):
         return generator(self._step)
 
 
-class SoftDeleteAsyncQuerySet(AsyncQuerySet):
+class SoftDeleteAsyncQuerySet(AsyncQuerySet[ModelT]):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._query = self._query.filter_by(deleted_at=None)
