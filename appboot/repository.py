@@ -37,8 +37,8 @@ class QuerySet(Query, Generic[ModelT]):
         super().__init__(self.model, session)
 
     def filter_query(self, query: QuerySchema) -> Self:
-        conditions = query.get_condition(self.model)
-        if ordering := query.get_ordering(self.model):
+        conditions = query.construct_condition(self.model)
+        if ordering := query.construct_ordering(self.model):
             return self.order_by(*ordering).filter(conditions)
         return self.filter(conditions)
 
