@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "appboot"
-version = "0.3.0"
+version = "0.3.1"
 description = "Use FastAPI like Django"
 authors = ["liyatao <liyatao001@gmail.com>"]
 readme = "README.md"
@@ -14,7 +14,7 @@ python-dotenv = ">=0.10.4"
 jinja2 = ">=2.11.2"
 typer = ">=0.8.0"
 typing_extensions = ">=4.2.0"
-uvicorn = { version = ">=0.21.0", extras = ["standard"] }
+uvicorn = { version = ">=0.17.0", extras = ["standard"] }
 sqlalchemy = { version = "^2.0.0", extras = ["asyncio"] }
 pydantic-settings = { version = "^2.0.0", optional = true }
 

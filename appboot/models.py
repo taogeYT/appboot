@@ -7,7 +7,6 @@ from typing import Optional, TypeVar
 from pydantic import BaseModel
 from sqlalchemy import JSON, DateTime, TypeDecorator, func
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
-from sqlalchemy.sql.selectable import ForUpdateParameter
 from typing_extensions import Self
 
 from appboot import timezone
@@ -67,8 +66,8 @@ class Model(Base):
 
     async def refresh(
         self,
-        attribute_names: Optional[typing.Iterable[str]] = None,
-        with_for_update: ForUpdateParameter = None,
+        attribute_names=None,
+        with_for_update=None,
     ):
         await ScopedSession().refresh(self, attribute_names, with_for_update)
 
