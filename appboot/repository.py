@@ -37,8 +37,8 @@ class QuerySet(Query, Generic[ModelT]):
         super().__init__(self.model, session)
 
     def filter_query(self, query: QuerySchema) -> Self:
-        conditions = query.get_condition(self.model)
-        if ordering := query.get_ordering(self.model):
+        conditions = query.construct_condition(self.model)
+        if ordering := query.construct_ordering(self.model):
             return self.order_by(*ordering).filter(conditions)
         return self.filter(conditions)
 
@@ -208,7 +208,7 @@ class AsyncQuerySet(Generic[ModelT]):
         return generator(self._step)
 
 
-class SoftDeleteAsyncQuerySet(AsyncQuerySet):
+class SoftDeleteAsyncQuerySet(AsyncQuerySet[ModelT]):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._query = self._query.filter_by(deleted_at=None)
