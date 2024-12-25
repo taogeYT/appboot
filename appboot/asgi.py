@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from appboot.conf import settings
 from appboot.db import transaction
 from appboot.exceptions import Error
+from appboot.response import APIResponse
 
 
 class ExceptionHandler:
@@ -25,6 +26,12 @@ class ExceptionHandler:
     @classmethod
     async def handle_exception(cls, request: Request, exc: Exception):
         return await cls(request, exc).make_response()
+
+
+class APIResponseExceptionHandler(ExceptionHandler):
+    async def make_response(self):
+        data = APIResponse.from_exception(self.exc)
+        return JSONResponse(data.dict(exclude_unset=True), status_code=data.code)
 
 
 def get_asgi_application():
