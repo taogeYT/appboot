@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import typing
+import warnings
 from typing import Any, Callable, Optional, Sequence
 
 from pydantic.fields import FieldInfo  # noqa
@@ -191,36 +192,36 @@ OrderingField = functools.partial(
 
 
 class BaseFilter(Schema):
+    @functools.cached_property
+    def filter_fields(self) -> dict[str, BaseFieldInfo]:
+        model_fields = get_schema_fields(self.__class__)
+        fields = {
+            name: field.field_info
+            for name, field in model_fields.items()
+            if isinstance(field.field_info, BaseFieldInfo)
+        }
+        if not fields:
+            warnings.warn('Filter has no filter fields')
+        return fields
+
     def construct_condition(self, model):
         conditions = []
-        model_fields = get_schema_fields(self.__class__)
-        for name, field in model_fields.items():
-            field_info = field.field_info
+        for name, field in self.filter_fields.items():
             value = getattr(self, name)
-            if value is None:
-                continue
-            if (
-                isinstance(field_info, BaseFieldInfo)
-                and field_info.expression_type == 'condition'
-            ):
-                columns = field_info.columns or [name]
+            if value is not None and field.expression_type == 'condition':
+                columns = field.columns or [name]
                 for column_name in columns:
                     if not hasattr(model, column_name):
                         raise FilterError(
                             f'Model {model.__name__} has no column {column_name}'
                         )
-                condition = field_info.construct_expression(model, columns, value)
+                condition = field.construct_expression(model, columns, value)
                 conditions.append(condition)
         return and_(*conditions)
 
     def construct_ordering(self, model):
-        model_fields = get_schema_fields(self.__class__)
-        for name, field in model_fields.items():
-            field_info = field.field_info
-            if (
-                isinstance(field_info, BaseFieldInfo)
-                and field_info.expression_type == 'ordering'
-            ):
-                value = getattr(self, name) or field_info.default
-                return field_info.construct_expression(model, [], value)
+        for name, field in self.filter_fields.items():
+            if field.expression_type == 'ordering':
+                value = getattr(self, name) or field.default
+                return field.construct_expression(model, [], value)
         return None

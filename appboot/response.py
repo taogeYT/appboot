@@ -2,8 +2,8 @@ from typing import Generic, Optional, TypeVar
 
 from fastapi import HTTPException
 
-from appboot import Schema
 from appboot.exceptions import Error
+from appboot.schema import Schema
 
 T = TypeVar('T')
 
