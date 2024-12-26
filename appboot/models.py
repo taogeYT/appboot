@@ -20,10 +20,9 @@ PydanticModel = TypeVar('PydanticModel', bound=BaseModel)
 
 
 class TableNameMixin:
-    @declared_attr.directive  # noqa
-    @classmethod
+    @declared_attr.directive
     def __tablename__(cls) -> str:
-        return f'{settings.DEFAULT_TABLE_NAME_PREFIX}{camel_to_snake(cls.__name__)}'
+        return f'{settings.MODEL_TABLENAME_PREFIX}{camel_to_snake(cls.__name__)}'
 
 
 class TimestampMixin:
@@ -64,20 +63,17 @@ class Model(Base):
             if hasattr(self, name) and getattr(self, name) != value:
                 setattr(self, name, value)
 
-    async def refresh(
-        self,
-        attribute_names=None,
-        with_for_update=None,
-    ):
-        await ScopedSession().refresh(self, attribute_names, with_for_update)
+    async def refresh(self, attribute_names=None, with_for_update=None):
+        await self.objects.session.refresh(self, attribute_names, with_for_update)
 
     async def save(self):
-        session = ScopedSession()
-        session.add(self)
+        session = self.objects.session
+        if self not in session.deleted:
+            session.add(self)
         await session.flush()
 
     async def delete(self):
-        session = ScopedSession()
+        session = self.objects.session
         await session.delete(self)
         await session.flush()
 

@@ -21,4 +21,4 @@ class DefaultSettings(BaseSettings):
     ALLOW_METHODS: list[str] = ['*']
     ALLOW_HEADERS: list[str] = ['*']
     ROOT_URLCONF: str = ''
-    DEFAULT_TABLE_NAME_PREFIX: str = ''
+    MODEL_TABLENAME_PREFIX: str = ''
