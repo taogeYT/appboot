@@ -79,7 +79,7 @@ class QuerySet(Query, Generic[ModelT]):
 class AsyncQuerySet(Generic[ModelT]):
     def __init__(self, model: type[ModelT], session: AsyncSession):
         self.model: type[ModelT] = model
-        self._session = session
+        self.session: AsyncSession = session
         self._query = QuerySet(self.model, session.sync_session)
         self._step = 1
 

@@ -4,6 +4,7 @@ import typing
 
 from pydantic import Field
 from sqlalchemy import inspect
+from sqlalchemy.orm import Mapped
 
 from appboot._compat import PydanticModelMetaclass, get_schema_fields
 from appboot.base import Schema
@@ -13,6 +14,14 @@ ModelSchemaT = typing.TypeVar('ModelSchemaT', bound='ModelSchema')
 IncEx = typing.Union[
     set[int], set[str], dict[int, typing.Any], dict[str, typing.Any], None
 ]
+
+
+def _parse_mapped_annotations(_annotations: dict[str, typing.Any]):
+    return {
+        name: typing.get_args(annotation)[0]
+        for name, annotation in _annotations.items()
+        if typing.get_origin(annotation) is Mapped
+    }
 
 
 def _parse_bases_fields(bases):
@@ -31,15 +40,17 @@ def _parse_field_from_sqlalchemy_model(
     _exclude = set() if exclude is None else set(exclude)
     _read_only_fields = set() if read_only_fields is None else set(read_only_fields)
     mapper = inspect(model)
+    column_annotations = _parse_mapped_annotations(model.__annotations__)
     for column_property in mapper.columns:
+        extra = {}
         if include and column_property.name not in include:
             continue
         if column_property.name in _exclude:
             continue
         if column_property.primary_key or column_property.name in _read_only_fields:
-            read_only = True
+            extra['read_only'] = True
         else:
-            read_only = False
+            extra['read_only'] = False
         if (
             column_property.primary_key
             or column_property.nullable
@@ -49,20 +60,18 @@ def _parse_field_from_sqlalchemy_model(
             default = None
         else:
             if column_property.default:
-                if column_property.default.is_scalar:
-                    python_type = column_property.type.python_type
-                    default = column_property.default.arg
-                else:
-                    python_type = typing.Optional[column_property.type.python_type]
-                    default = None
+                python_type = typing.Optional[column_property.type.python_type]
+                default = None
             else:
                 python_type = column_property.type.python_type
                 default = ...
-        __annotations__[column_property.name] = python_type
+        __annotations__[column_property.name] = (
+            column_annotations.get(column_property.name) or python_type
+        )
         __dict__[column_property.name] = Field(
             default,
             title=column_property.doc or column_property.name,
-            read_only=read_only,
+            **extra,
         )
     return __dict__, __annotations__
 
@@ -108,7 +117,7 @@ class ModelSchema(Schema, metaclass=ModelSchemaMetaclass):
     @classmethod
     def construct_schema(cls, **kwargs):
         fields = get_schema_fields(cls)
-        return cls(**{k: v for k, v in kwargs if k in fields})
+        return cls.parse_obj({k: v for k, v in kwargs if k in fields})
 
     @property
     def validated_data(self):
