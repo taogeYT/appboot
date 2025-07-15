@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import typing
 from datetime import datetime
+from enum import Enum
 from typing import Optional, TypeVar
 
 from pydantic import BaseModel
-from sqlalchemy import JSON, DateTime, TypeDecorator, func
+from sqlalchemy import JSON, DateTime, Integer, String, TypeDecorator, func
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 from typing_extensions import Self
 
@@ -118,3 +119,30 @@ class PydanticType(TypeDecorator):
     @property
     def python_type(self):
         return self.pydantic_type
+
+
+class EnumType(TypeDecorator):
+    impl = String
+    cache_ok = True
+
+    def __init__(self, enum_type: type[Enum], *args, **kwargs):
+        self.enum_type = enum_type
+        super().__init__(*args, **kwargs)
+
+    def process_bind_param(self, value, dialect):
+        if isinstance(value, self.enum_type):
+            return value.value
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            return self.enum_type(value)
+        return value
+
+    @property
+    def python_type(self):
+        return self.enum_type
+
+
+class IntEnumType(EnumType):
+    impl = Integer
