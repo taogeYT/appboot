@@ -67,16 +67,16 @@ class Model(Base):
     async def refresh(self, attribute_names=None, with_for_update=None):
         await self.objects.session.refresh(self, attribute_names, with_for_update)
 
-    async def save(self):
+    async def save(self, flush=False):
         session = self.objects.session
         if self not in session.deleted:
             session.add(self)
-        await session.flush()
+        if flush:
+            await session.flush()
 
     async def delete(self):
         session = self.objects.session
         await session.delete(self)
-        await session.flush()
 
 
 def _parse_data_to_model(model: type[Base], data: dict[str, typing.Any]):
