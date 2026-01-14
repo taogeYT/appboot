@@ -146,3 +146,4 @@ class EnumType(TypeDecorator):
 
 class IntEnumType(EnumType):
     impl = Integer
+    cache_ok = True
