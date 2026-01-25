@@ -53,8 +53,8 @@ class QuestionSchema(ModelSchema):
 Write the CRUD API in `polls/views.py`.
 ```python
 from fastapi import APIRouter, Depends
+from appboot import PaginationResult, QueryDepends, PaginationQuerySchema
 from appboot.db import create_tables
-from appboot.params import QuerySchema, QueryDepends, PaginationResult
 from polls.models import Question
 from polls.schema import QuestionSchema
 
@@ -65,21 +65,21 @@ async def create_question(question: QuestionSchema):
     return await question.create()
 
 @router.get('/questions/', response_model=PaginationResult[QuestionSchema])
-async def query_questions(query: QuerySchema = QueryDepends()):
-    return await query.query_result(Question.objects.clone())
+async def query_questions(query: PaginationQuerySchema = QueryDepends()):
+    return await Question.objects.paginate(query)
 
 @router.get('/questions/{question_id}', response_model=QuestionSchema)
 async def get_question(question_id: int):
-    return await Question.objects.get(question_id)
+    return await Question.objects.get(id=question_id)
 
 @router.put('/questions/{question_id}', response_model=QuestionSchema)
 async def update_question(question_id: int, question: QuestionSchema):
-    instance = await Question.objects.get(question_id)
+    instance = await Question.objects.get(id=question_id)
     return await question.update(instance)
 
 @router.delete('/questions/{question_id}', response_model=QuestionSchema)
 async def delete_question(question_id: int):
-    instance = await Question.objects.get(question_id)
+    instance = await Question.objects.get(id=question_id)  
     return await instance.delete()
 ```
 ### Configure API Routes
@@ -101,12 +101,12 @@ We can now access our API directly through the browser at [http://127.0.0.1:8000
 Create a `QuestionQuerySchema` for complex queries in `polls/schema.py`.
 ```python
 from typing import Optional
-from appboot.params import QuerySchema
-from appboot.filters import EqField, ContainsField
+from appboot import PaginationQuerySchema, filters
 
-class QuestionQuerySchema(QuerySchema):
-    ids: Optional[list[int]] = EqField(None, alias='pk', columns='id')  # Query questions by ID list
-    question_text: Optional[str] = ContainsField(None)  # Fuzzy query question_text
+class QuestionQuerySchema(PaginationQuerySchema):
+    ids: Optional[list[int]] = filters.EqField(None, alias='pk', column_name='id')  # 按 ID 列表查询 Question
+    question_text: Optional[str] = filters.SearchField(None)  # 模糊查询 question_text
+    ordering: str = filters.OrderingField('-id')  # 排序字段，默认按 ID 降序
 ```
 Replace `QuerySchema` with `QuestionQuerySchema` in `polls/views.py`, refresh the docs in the browser, and you will see two new query parameters in the query questions API.
 ![Complex Query Parameters](https://github.com/taogeYT/oss/blob/main/resource/appboot/images/query.png?raw=true)

@@ -52,8 +52,8 @@ class QuestionSchema(ModelSchema):
 在 `polls/views.py` 中编写 CRUD API。
 ```python
 from fastapi import APIRouter, Depends
+from appboot import PaginationResult, QueryDepends, PaginationQuerySchema
 from appboot.db import create_tables
-from appboot.params import QuerySchema, QueryDepends, PaginationResult
 from polls.models import Question
 from polls.schema import QuestionSchema
 
@@ -64,21 +64,21 @@ async def create_question(question: QuestionSchema):
     return await question.create()
 
 @router.get('/questions/', response_model=PaginationResult[QuestionSchema])
-async def query_questions(query: QuerySchema = QueryDepends()):
-    return await query.query_result(Question.objects.clone())
+async def query_questions(query: PaginationQuerySchema = QueryDepends()):
+    return await Question.objects.paginate(query)
 
 @router.get('/questions/{question_id}', response_model=QuestionSchema)
 async def get_question(question_id: int):
-    return await Question.objects.get(question_id)
+    return await Question.objects.get(id=question_id)
 
 @router.put('/questions/{question_id}', response_model=QuestionSchema)
 async def update_question(question_id: int, question: QuestionSchema):
-    instance = await Question.objects.get(question_id)
+    instance = await Question.objects.get(id=question_id)
     return await question.update(instance)
 
 @router.delete('/questions/{question_id}', response_model=QuestionSchema)
 async def delete_question(question_id: int):
-    instance = await Question.objects.get(question_id)
+    instance = await Question.objects.get(id=question_id)  
     return await instance.delete()
 ```
 ### 配置 API 路由规则
@@ -100,12 +100,12 @@ python manage.py runserver
 在 `polls/schema.py` 中创建 `QuestionQuerySchema` 以进行复杂查询。
 ```python
 from typing import Optional
-from appboot.params import QuerySchema
-from appboot.filters import EqField, ContainsField
+from appboot import PaginationQuerySchema, filters
 
-class QuestionQuerySchema(QuerySchema):
-    ids: Optional[list[int]] = EqField(None, alias='pk', columns='id')  # 按 ID 列表查询 Question
-    question_text: Optional[str] = ContainsField(None)  # question_text 字段模糊查询
+class QuestionQuerySchema(PaginationQuerySchema):
+    ids: Optional[list[int]] = filters.EqField(None, alias='pk', column_name='id')  # 按 ID 列表查询 Question
+    question_text: Optional[str] = filters.SearchField(None)  # 模糊查询 question_text
+    ordering: str = filters.OrderingField('-id')  # 排序字段，默认按 ID 降序
 ```
 在 `polls/views.py` 文件中将 `QuerySchema` 替换为 `QuestionQuerySchema`，然后在浏览器中刷新文档页面，你会看到question列表接口增加了两个新的查询参数。
 ![复杂查询参数](https://github.com/taogeYT/oss/blob/main/resource/appboot/images/query.png?raw=true)
